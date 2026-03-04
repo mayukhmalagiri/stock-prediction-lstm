@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <title>Stock Prediction</title>
 
+<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+
 <style>
 
 body {
@@ -77,17 +79,8 @@ button:hover {
     margin-top: 20px;
 }
 
-/* GRAPH STYLE */
-
 .graph-container{
     margin-top:30px;
-    text-align:center;
-}
-
-.graph-container img{
-    width:100%;
-    border-radius:10px;
-    box-shadow:0 10px 20px rgba(0,0,0,0.15);
 }
 
 </style>
@@ -121,9 +114,7 @@ button:hover {
 <option value="">-- Select Past Range --</option>
 
 <option value="6m" {% if selected_past == "6m" %}selected{% endif %}>Past 6 Months</option>
-
 <option value="1y" {% if selected_past == "1y" %}selected{% endif %}>Past 1 Year</option>
-
 <option value="3y" {% if selected_past == "3y" %}selected{% endif %}>Past 3 Years</option>
 
 </select>
@@ -135,9 +126,7 @@ button:hover {
 <option value="">-- Select Future Period --</option>
 
 <option value="1y" {% if selected_future == "1y" %}selected{% endif %}>After 1 Year</option>
-
 <option value="3y" {% if selected_future == "3y" %}selected{% endif %}>After 3 Years</option>
-
 <option value="5y" {% if selected_future == "5y" %}selected{% endif %}>After 5 Years</option>
 
 </select>
@@ -180,7 +169,7 @@ button:hover {
 {% endif %}
 
 
-<!-- GRAPH DISPLAY -->
+<!-- INTERACTIVE GRAPH -->
 
 {% if graph_url %}
 
@@ -188,7 +177,7 @@ button:hover {
 
 <h3>📈 Price Trend</h3>
 
-<img src="data:image/png;base64,{{ graph_url }}">
+{{ graph_url | safe }}
 
 </div>
 

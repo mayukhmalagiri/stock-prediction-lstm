@@ -8,16 +8,12 @@ import os
 import numpy as np
 import pandas as pd
 
-import matplotlib
-matplotlib.use("Agg")
-
-import matplotlib.pyplot as plt
-import io
-import base64
-
 from flask import Flask, render_template, request
 from tensorflow.keras.models import load_model
 from sklearn.preprocessing import MinMaxScaler
+
+import plotly.graph_objs as go
+import plotly.offline as pyo
 
 app = Flask(__name__)
 
@@ -118,7 +114,6 @@ def index():
             )
 
             future_price = future_predictions[-1][0]
-
             current_price = prices[-1][0]
 
             profit_percent = ((future_price - current_price) / current_price) * 100
@@ -128,7 +123,6 @@ def index():
             # -----------------------------------
 
             years = int(selected_future[0])
-
             adjusted_profit = profit_percent / years
 
             if adjusted_profit >= 12:
@@ -148,33 +142,45 @@ def index():
                 decision_color = "red"
 
             # -----------------------------------
-            # GRAPH CREATION
+            # PROFESSIONAL INTERACTIVE GRAPH
             # -----------------------------------
 
             past_prices = prices.flatten()
 
+            # show only recent part for clarity
+            past_prices = past_prices[-500:]
+
             future_line = future_predictions.flatten()
 
-            x_past = range(len(past_prices))
-            x_future = range(len(past_prices), len(past_prices) + len(future_line))
+            x_past = list(range(len(past_prices)))
+            x_future = list(range(len(past_prices), len(past_prices) + len(future_line)))
 
-            plt.figure(figsize=(8,4))
+            past_trace = go.Scatter(
+                x=x_past,
+                y=past_prices,
+                mode='lines',
+                name='Past Prices',
+                line=dict(color='blue', width=3)
+            )
 
-            plt.plot(x_past, past_prices, color="blue", label="Past Prices")
-            plt.plot(x_future, future_line, color="red", label="Predicted Future")
+            future_trace = go.Scatter(
+                x=x_future,
+                y=future_line,
+                mode='lines',
+                name='Predicted Future',
+                line=dict(color='red', width=3, dash='dash')
+            )
 
-            plt.legend()
-            plt.title(f"{selected_stock} Stock Prediction")
-            plt.xlabel("Time")
-            plt.ylabel("Price")
+            layout = go.Layout(
+                title=f"{selected_stock} Stock Prediction",
+                xaxis=dict(title="Time"),
+                yaxis=dict(title="Price"),
+                template="plotly_white"
+            )
 
-            img = io.BytesIO()
-            plt.savefig(img, format="png")
-            img.seek(0)
+            fig = go.Figure(data=[past_trace, future_trace], layout=layout)
 
-            graph_url = base64.b64encode(img.getvalue()).decode()
-
-            plt.close()
+            graph_url = pyo.plot(fig, output_type='div', include_plotlyjs=False)
 
             # -----------------------------------
 
@@ -189,7 +195,6 @@ def index():
             }
 
         except Exception as e:
-
             result = {"error": str(e)}
 
     return render_template(
