@@ -7,6 +7,9 @@
 import os
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
+import io
+import base64
 
 from flask import Flask, render_template, request
 from tensorflow.keras.models import load_model
@@ -41,9 +44,7 @@ FUTURE_DAYS_MAP = {
 # -----------------------------------
 
 def predict_future(model, last_window, scaler, future_days):
-    """
-    Iteratively predict future prices using LSTM
-    """
+
     window = last_window.copy()
     predictions = []
 
@@ -57,7 +58,8 @@ def predict_future(model, last_window, scaler, future_days):
     predictions = np.array(predictions).reshape(-1, 1)
     predictions = scaler.inverse_transform(predictions)
 
-    return predictions[-1][0]
+    return predictions
+
 
 # -----------------------------------
 # HOME
@@ -65,18 +67,22 @@ def predict_future(model, last_window, scaler, future_days):
 
 @app.route("/", methods=["GET", "POST"])
 def index():
+
     result = None
+    graph_url = None
     selected_stock = ""
     selected_past = ""
     selected_future = ""
 
     if request.method == "POST":
+
         selected_stock = request.form.get("stock")
         selected_past = request.form.get("past_range")
         selected_future = request.form.get("future_range")
 
         try:
-            # Load cached CSV
+
+            # Load CSV
             csv_path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
             df = pd.read_csv(csv_path)
             df.columns = [c.strip().lower() for c in df.columns]
@@ -101,13 +107,23 @@ def index():
             last_window = scaled_prices[-WINDOW_SIZE:].flatten()
 
             future_days = FUTURE_DAYS_MAP[selected_future]
-            future_price = predict_future(model, last_window, scaler, future_days)
+
+            # Get future predictions
+            future_predictions = predict_future(
+                model, last_window, scaler, future_days
+            )
+
+            future_price = future_predictions[-1][0]
 
             current_price = prices[-1][0]
+
             profit_percent = ((future_price - current_price) / current_price) * 100
 
-            # Decision logic
-            years = int(selected_future[0])  # 1, 3, or 5
+            # -----------------------------------
+            # DECISION LOGIC
+            # -----------------------------------
+
+            years = int(selected_future[0])
 
             adjusted_profit = profit_percent / years
 
@@ -120,13 +136,43 @@ def index():
             else:
                 decision = "Not Recommended"
                 decision_color = "red"
+
             volatility = np.std(prices[-60:]) / current_price * 100
 
             if volatility > 8 and years >= 3:
                 decision = "High Risk – Not Recommended"
                 decision_color = "red"
 
+            # -----------------------------------
+            # GRAPH CREATION
+            # -----------------------------------
 
+            past_prices = prices.flatten()
+
+            future_line = future_predictions.flatten()
+
+            x_past = range(len(past_prices))
+            x_future = range(len(past_prices), len(past_prices) + len(future_line))
+
+            plt.figure(figsize=(8,4))
+
+            plt.plot(x_past, past_prices, color="blue", label="Past Prices")
+            plt.plot(x_future, future_line, color="red", label="Predicted Future")
+
+            plt.legend()
+            plt.title(f"{selected_stock} Stock Prediction")
+            plt.xlabel("Time")
+            plt.ylabel("Price")
+
+            img = io.BytesIO()
+            plt.savefig(img, format="png")
+            img.seek(0)
+
+            graph_url = base64.b64encode(img.getvalue()).decode()
+
+            plt.close()
+
+            # -----------------------------------
 
             result = {
                 "stock": selected_stock,
@@ -139,21 +185,25 @@ def index():
             }
 
         except Exception as e:
+
             result = {"error": str(e)}
 
     return render_template(
         "index.html",
         result=result,
+        graph_url=graph_url,
         stocks=STOCK_MAP,
         selected_stock=selected_stock,
         selected_past=selected_past,
         selected_future=selected_future
     )
 
+
 # -----------------------------------
 # RUN
 # -----------------------------------
 
 if __name__ == "__main__":
+
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
