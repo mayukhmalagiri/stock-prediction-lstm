@@ -93,6 +93,7 @@ def index():
             else:
                 df["date"] = pd.date_range(start="2000-01-01", periods=len(df))
 
+            # Select correct price column
             if "close" in df.columns:
                 prices = df["close"]
             else:
@@ -148,14 +149,21 @@ def index():
                 decision_color = "red"
 
             # -----------------------------------
-            # PROFESSIONAL GRAPH WITH REAL DATES
+            # GRAPH SECTION (FIXED)
             # -----------------------------------
 
-            dates = df["date"].iloc[-500:]
-            past_prices = prices.flatten()[-500:]
+            # determine past range
+            if selected_past == "6m":
+                past_days = 126
+            elif selected_past == "1y":
+                past_days = 252
+            else:
+                past_days = 756
+
+            dates = df["date"].iloc[-past_days:]
+            past_prices = prices.flatten()[-past_days:]
             future_line = future_predictions.flatten()
 
-            # future dates
             last_date = dates.iloc[-1]
 
             future_dates = pd.date_range(
@@ -181,9 +189,9 @@ def index():
             )
 
             layout = go.Layout(
-                title=f"{selected_stock} Stock Prediction",
+                title=f"{selected_stock} Stock Price Forecast",
                 xaxis=dict(title="Date"),
-                yaxis=dict(title="Price ($)"),
+                yaxis=dict(title="Price per Share ($)"),
                 template="plotly_white"
             )
 
