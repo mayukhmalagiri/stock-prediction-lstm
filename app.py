@@ -87,6 +87,12 @@ def index():
             df = pd.read_csv(csv_path)
             df.columns = [c.strip().lower() for c in df.columns]
 
+            # Convert date column
+            if "date" in df.columns:
+                df["date"] = pd.to_datetime(df["date"])
+            else:
+                df["date"] = pd.date_range(start="2000-01-01", periods=len(df))
+
             if "close" in df.columns:
                 prices = df["close"]
             else:
@@ -108,7 +114,7 @@ def index():
 
             future_days = FUTURE_DAYS_MAP[selected_future]
 
-            # Get future predictions
+            # Get predictions
             future_predictions = predict_future(
                 model, last_window, scaler, future_days
             )
@@ -142,21 +148,24 @@ def index():
                 decision_color = "red"
 
             # -----------------------------------
-            # PROFESSIONAL INTERACTIVE GRAPH
+            # PROFESSIONAL GRAPH WITH REAL DATES
             # -----------------------------------
 
-            past_prices = prices.flatten()
-
-            # show only recent part for clarity
-            past_prices = past_prices[-500:]
-
+            dates = df["date"].iloc[-500:]
+            past_prices = prices.flatten()[-500:]
             future_line = future_predictions.flatten()
 
-            x_past = list(range(len(past_prices)))
-            x_future = list(range(len(past_prices), len(past_prices) + len(future_line)))
+            # future dates
+            last_date = dates.iloc[-1]
+
+            future_dates = pd.date_range(
+                start=last_date,
+                periods=len(future_line) + 1,
+                freq="D"
+            )[1:]
 
             past_trace = go.Scatter(
-                x=x_past,
+                x=dates,
                 y=past_prices,
                 mode='lines',
                 name='Past Prices',
@@ -164,7 +173,7 @@ def index():
             )
 
             future_trace = go.Scatter(
-                x=x_future,
+                x=future_dates,
                 y=future_line,
                 mode='lines',
                 name='Predicted Future',
@@ -173,8 +182,8 @@ def index():
 
             layout = go.Layout(
                 title=f"{selected_stock} Stock Prediction",
-                xaxis=dict(title="Time"),
-                yaxis=dict(title="Price"),
+                xaxis=dict(title="Date"),
+                yaxis=dict(title="Price ($)"),
                 template="plotly_white"
             )
 
