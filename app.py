@@ -1,7 +1,6 @@
 # app.py
 # -----------------------------------
 # Flask App for LSTM-based Stock Prediction
-# Uses Iterative Multi-Step Forecasting
 # -----------------------------------
 
 import os
@@ -87,13 +86,13 @@ def index():
             df = pd.read_csv(csv_path)
             df.columns = [c.strip().lower() for c in df.columns]
 
-            # Convert date column
+            # Date column
             if "date" in df.columns:
                 df["date"] = pd.to_datetime(df["date"])
             else:
                 df["date"] = pd.date_range(start="2000-01-01", periods=len(df))
 
-            # Select correct price column
+            # Price column
             if "close" in df.columns:
                 prices = df["close"]
             else:
@@ -110,12 +109,10 @@ def index():
             model_path = os.path.join(MODEL_DIR, f"{selected_stock}.h5")
             model = load_model(model_path)
 
-            # Last window
             last_window = scaled_prices[-WINDOW_SIZE:].flatten()
 
             future_days = FUTURE_DAYS_MAP[selected_future]
 
-            # Get predictions
             future_predictions = predict_future(
                 model, last_window, scaler, future_days
             )
@@ -149,83 +146,70 @@ def index():
                 decision_color = "red"
 
             # -----------------------------------
-            # GRAPH SECTION (FIXED)
+            # GRAPH SECTION
             # -----------------------------------
 
-            # -----------------------------------
-# GRAPH SECTION (PROFESSIONAL)
-# -----------------------------------
+            if selected_past == "6m":
+                past_days = 126
+            elif selected_past == "1y":
+                past_days = 252
+            else:
+                past_days = 756
 
-# determine past range from dropdown
-if selected_past == "6m":
-    past_days = 126
-elif selected_past == "1y":
-    past_days = 252
-else:
-    past_days = 756
+            dates = df["date"].iloc[-past_days:]
+            past_prices = prices.flatten()[-past_days:]
 
-# past data
-dates = df["date"].iloc[-past_days:]
-past_prices = prices.flatten()[-past_days:]
+            future_line = future_predictions.flatten()
 
-# predicted future values
-future_line = future_predictions.flatten()
+            last_date = dates.iloc[-1]
 
-# last date of past data
-last_date = dates.iloc[-1]
+            future_dates = pd.date_range(
+                start=last_date,
+                periods=len(future_line),
+                freq="D"
+            )
 
-# generate future dates
-future_dates = pd.date_range(
-    start=last_date,
-    periods=len(future_line),
-    freq="D"
-)
+            # connect future to past
+            future_line = np.concatenate([[past_prices[-1]], future_line])
+            future_dates = list(future_dates)
+            future_dates.insert(0, last_date)
 
-# connect future prediction to last past point
-future_line = np.insert(future_line, 0, past_prices[-1])
-future_dates = np.insert(future_dates, 0, last_date)
+            past_trace = go.Scatter(
+                x=dates,
+                y=past_prices,
+                mode='lines',
+                name='Past Prices',
+                line=dict(color='blue', width=3)
+            )
 
-# past trace
-past_trace = go.Scatter(
-    x=dates,
-    y=past_prices,
-    mode='lines',
-    name='Past Prices',
-    line=dict(color='blue', width=3)
-)
+            future_trace = go.Scatter(
+                x=future_dates,
+                y=future_line,
+                mode='lines',
+                name='Predicted Future',
+                line=dict(color='red', width=3, dash='dash')
+            )
 
-# future trace
-future_trace = go.Scatter(
-    x=future_dates,
-    y=future_line,
-    mode='lines',
-    name='Predicted Future',
-    line=dict(color='red', width=3, dash='dash')
-)
+            layout = go.Layout(
+                title=f"{selected_stock} Stock Price Forecast",
+                xaxis=dict(title="Date"),
+                yaxis=dict(title="Price per Share ($)"),
+                template="plotly_white",
+                shapes=[
+                    dict(
+                        type="line",
+                        x0=last_date,
+                        x1=last_date,
+                        y0=min(past_prices),
+                        y1=max(future_line),
+                        line=dict(color="gray", dash="dot")
+                    )
+                ]
+            )
 
-# layout
-layout = go.Layout(
-    title=f"{selected_stock} Stock Price Forecast",
-    xaxis=dict(title="Date"),
-    yaxis=dict(title="Price per Share ($)"),
-    template="plotly_white",
+            fig = go.Figure(data=[past_trace, future_trace], layout=layout)
 
-    shapes=[
-        dict(
-            type="line",
-            x0=last_date,
-            x1=last_date,
-            y0=min(past_prices),
-            y1=max(future_line),
-            line=dict(color="gray", dash="dot")
-        )
-    ]
-)
-
-# generate graph
-fig = go.Figure(data=[past_trace, future_trace], layout=layout)
-
-graph_url = pyo.plot(fig, output_type='div', include_plotlyjs=False)
+            graph_url = pyo.plot(fig, output_type='div', include_plotlyjs=False)
 
             # -----------------------------------
 
