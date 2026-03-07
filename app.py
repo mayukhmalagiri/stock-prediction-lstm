@@ -133,7 +133,6 @@ def index():
 
             last_window = scaled_prices[-WINDOW_SIZE:].flatten()
 
-            # FIX: remove 120-day limitation
             future_days = FUTURE_DAYS_MAP[selected_future]
 
             future_predictions = predict_future(
@@ -189,16 +188,14 @@ def index():
 
             future_line = future_predictions.flatten()
 
-            # Align prediction with last real value
-            shift = past_prices[-1] - future_line[0]
-            future_line = future_line + shift
+            # align prediction start with last real price
+            future_line = future_line - future_line[0] + past_prices[-1]
 
-            # Add realistic volatility
-            volatility = np.std(past_prices[-60:]) * 0.1
+            # add small volatility
+            volatility = np.std(past_prices[-60:]) * 0.05
             noise = np.random.normal(0, volatility, len(future_line))
             future_line = future_line + noise
 
-            # Ensure first predicted point = last real price
             future_line[0] = past_prices[-1]
 
             last_date = dates.iloc[-1]
@@ -208,6 +205,12 @@ def index():
                 periods=len(future_line),
                 freq="D"
             )
+
+            # reduce points for cleaner graph
+            step = max(1, int(len(future_dates) / 120))
+
+            future_dates = future_dates[::step]
+            future_line = future_line[::step]
 
             past_trace = go.Scatter(
                 x=dates,
