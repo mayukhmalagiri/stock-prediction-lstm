@@ -62,6 +62,7 @@ def predict_future(model, last_window, scaler, future_days):
     for _ in range(future_days):
 
         input_data = window.reshape(1, window.shape[0], 1)
+
         next_scaled = model.predict(input_data, verbose=0)[0][0]
 
         predictions.append(next_scaled)
@@ -69,6 +70,7 @@ def predict_future(model, last_window, scaler, future_days):
         window = np.append(window[1:], next_scaled)
 
     predictions = np.array(predictions).reshape(-1, 1)
+
     predictions = scaler.inverse_transform(predictions)
 
     return predictions
@@ -116,6 +118,7 @@ def index():
                 prices = df["adj close"]
 
             prices = pd.to_numeric(prices, errors="coerce").dropna()
+
             prices = prices.values.reshape(-1, 1)
 
             # -----------------------------------
@@ -123,10 +126,11 @@ def index():
             # -----------------------------------
 
             scaler = MinMaxScaler()
+
             scaled_prices = scaler.fit_transform(prices)
 
             # -----------------------------------
-            # LOAD MODEL (CACHED)
+            # LOAD MODEL
             # -----------------------------------
 
             model = get_model(selected_stock)
@@ -143,6 +147,7 @@ def index():
             )
 
             future_price = future_predictions[-1][0]
+
             current_price = prices[-1][0]
 
             profit_percent = ((future_price - current_price) / current_price) * 100
@@ -152,23 +157,28 @@ def index():
             # -----------------------------------
 
             years = int(selected_future[0])
+
             adjusted_profit = profit_percent / years
 
             if adjusted_profit >= 12:
+
                 decision = "Long-Term Investment"
                 decision_color = "green"
 
             elif adjusted_profit >= 4:
+
                 decision = "Moderate / Short-Term Investment"
                 decision_color = "orange"
 
             else:
+
                 decision = "Not Recommended"
                 decision_color = "red"
 
             volatility = np.std(prices[-60:]) / current_price * 100
 
             if volatility > 8 and years >= 3:
+
                 decision = "High Risk – Not Recommended"
                 decision_color = "red"
 
@@ -184,33 +194,36 @@ def index():
                 past_days = 756
 
             dates = df["date"].iloc[-past_days:]
+
             past_prices = prices.flatten()[-past_days:]
 
             future_line = future_predictions.flatten()
 
-            # align prediction start with last real price
-            future_line = future_line - future_line[0] + past_prices[-1]
-
-            # add small volatility
-            volatility = np.std(past_prices[-60:]) * 0.05
-            noise = np.random.normal(0, volatility, len(future_line))
-            future_line = future_line + noise
-
-            future_line[0] = past_prices[-1]
+            last_price = past_prices[-1]
 
             last_date = dates.iloc[-1]
 
+            # shift predictions so they start from last price
+            future_line = future_line - future_line[0] + last_price
+
+            # add last real price at beginning so lines join
+            future_line = np.insert(future_line, 0, last_price)
+
             future_dates = pd.date_range(
-                start=last_date + pd.Timedelta(days=1),
+                start=last_date,
                 periods=len(future_line),
                 freq="D"
             )
 
-            # reduce points for cleaner graph
-            step = max(1, int(len(future_dates) / 120))
+            # reduce graph density for long predictions
+            step = max(1, int(len(future_dates) / 150))
 
             future_dates = future_dates[::step]
             future_line = future_line[::step]
+
+            # -----------------------------------
+            # PLOT
+            # -----------------------------------
 
             past_trace = go.Scatter(
                 x=dates,
@@ -232,23 +245,10 @@ def index():
                 title=f"{selected_stock} Stock Price Forecast",
                 xaxis=dict(title="Date"),
                 yaxis=dict(title="Price per Share ($)"),
-                template="plotly_white",
-                shapes=[
-                    dict(
-                        type="line",
-                        x0=last_date,
-                        x1=last_date,
-                        y0=min(past_prices),
-                        y1=max(future_line),
-                        line=dict(color="gray", dash="dot")
-                    )
-                ]
+                template="plotly_white"
             )
 
-            fig = go.Figure(
-                data=[past_trace, future_trace],
-                layout=layout
-            )
+            fig = go.Figure(data=[past_trace, future_trace], layout=layout)
 
             graph_url = pyo.plot(
                 fig,
@@ -269,6 +269,7 @@ def index():
             }
 
         except Exception as e:
+
             result = {"error": str(e)}
 
     return render_template(
