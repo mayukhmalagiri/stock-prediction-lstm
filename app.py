@@ -112,7 +112,7 @@ def index():
             # Last window for LSTM
             last_window = scaled_prices[-WINDOW_SIZE:].flatten()
 
-            future_days = FUTURE_DAYS_MAP[selected_future]
+            future_days = min(FUTURE_DAYS_MAP[selected_future], 120)
 
             future_predictions = predict_future(
                 model, last_window, scaler, future_days
