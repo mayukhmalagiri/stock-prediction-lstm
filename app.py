@@ -49,6 +49,7 @@ def get_model(stock):
         MODEL_CACHE[stock] = load_model(os.path.join(MODEL_DIR, f"{stock}.h5"))
     return MODEL_CACHE[stock]
 
+
 # -----------------------------------
 # ITERATIVE FUTURE PREDICTION
 # -----------------------------------
@@ -115,7 +116,6 @@ def index():
                 prices = df["adj close"]
 
             prices = pd.to_numeric(prices, errors="coerce").dropna()
-
             prices = prices.values.reshape(-1, 1)
 
             # -----------------------------------
@@ -133,7 +133,8 @@ def index():
 
             last_window = scaled_prices[-WINDOW_SIZE:].flatten()
 
-            future_days = min(FUTURE_DAYS_MAP[selected_future], 120)
+            # FIX: remove 120-day limitation
+            future_days = FUTURE_DAYS_MAP[selected_future]
 
             future_predictions = predict_future(
                 model,
@@ -183,25 +184,21 @@ def index():
             else:
                 past_days = 756
 
-            past_days = min(past_days, 200)
-
             dates = df["date"].iloc[-past_days:]
             past_prices = prices.flatten()[-past_days:]
 
             future_line = future_predictions.flatten()
 
-            # ---- FIX 1: align prediction with last real price ----
-            if len(future_line) > 0:
-                shift = past_prices[-1] - future_line[0]
-                future_line = future_line + shift
+            # Align prediction with last real value
+            shift = past_prices[-1] - future_line[0]
+            future_line = future_line + shift
 
-            # ---- FIX 2: add realistic volatility ----
-            volatility = np.std(past_prices[-60:]) * 0.15
+            # Add realistic volatility
+            volatility = np.std(past_prices[-60:]) * 0.1
             noise = np.random.normal(0, volatility, len(future_line))
-
             future_line = future_line + noise
 
-            # ---- FIX 3: keep starting point exactly same ----
+            # Ensure first predicted point = last real price
             future_line[0] = past_prices[-1]
 
             last_date = dates.iloc[-1]
