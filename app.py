@@ -68,7 +68,6 @@ def predict_future(model, last_window, scaler, future_days):
         window = np.append(window[1:], next_scaled)
 
     predictions = np.array(predictions).reshape(-1, 1)
-
     predictions = scaler.inverse_transform(predictions)
 
     return predictions
@@ -124,7 +123,6 @@ def index():
             # -----------------------------------
 
             scaler = MinMaxScaler()
-
             scaled_prices = scaler.fit_transform(prices)
 
             # -----------------------------------
@@ -135,7 +133,7 @@ def index():
 
             last_window = scaled_prices[-WINDOW_SIZE:].flatten()
 
-            # limit future prediction for speed
+            # limit prediction length for server stability
             future_days = min(FUTURE_DAYS_MAP[selected_future], 120)
 
             future_predictions = predict_future(
@@ -146,7 +144,6 @@ def index():
             )
 
             future_price = future_predictions[-1][0]
-
             current_price = prices[-1][0]
 
             profit_percent = ((future_price - current_price) / current_price) * 100
@@ -156,28 +153,23 @@ def index():
             # -----------------------------------
 
             years = int(selected_future[0])
-
             adjusted_profit = profit_percent / years
 
             if adjusted_profit >= 12:
-
                 decision = "Long-Term Investment"
                 decision_color = "green"
 
             elif adjusted_profit >= 4:
-
                 decision = "Moderate / Short-Term Investment"
                 decision_color = "orange"
 
             else:
-
                 decision = "Not Recommended"
                 decision_color = "red"
 
             volatility = np.std(prices[-60:]) / current_price * 100
 
             if volatility > 8 and years >= 3:
-
                 decision = "High Risk – Not Recommended"
                 decision_color = "red"
 
@@ -192,24 +184,21 @@ def index():
             else:
                 past_days = 756
 
-            # limit points for faster rendering
+            # limit points for faster plotting
             past_days = min(past_days, 200)
 
             dates = df["date"].iloc[-past_days:]
-
             past_prices = prices.flatten()[-past_days:]
 
             future_line = future_predictions.flatten()
 
-            # make prediction continue from last point
-            if len(future_line) > 0:
-                offset = past_prices[-1] - future_line[0]
-                future_line = future_line + offset
+            # join prediction with last past value
+            future_line = np.insert(future_line, 0, past_prices[-1])
 
             last_date = dates.iloc[-1]
 
             future_dates = pd.date_range(
-                start=last_date + pd.Timedelta(days=1),
+                start=last_date,
                 periods=len(future_line),
                 freq="D"
             )
@@ -271,7 +260,6 @@ def index():
             }
 
         except Exception as e:
-
             result = {"error": str(e)}
 
     return render_template(
