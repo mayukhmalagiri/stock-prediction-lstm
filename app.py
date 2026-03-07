@@ -160,6 +160,7 @@ def index():
             past_prices = prices.flatten()[-past_days:]
 
             future_line = future_predictions.flatten()
+            future_line = future_line - future_line[0] + past_prices[-1]
 
             last_date = dates.iloc[-1]
 
