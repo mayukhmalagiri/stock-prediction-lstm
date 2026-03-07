@@ -164,11 +164,7 @@ def index():
 
             last_date = dates.iloc[-1]
 
-            future_dates = pd.date_range(
-                start=last_date,
-                periods=len(future_line),
-                freq="D"
-            )
+            future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1),  periods=len(future_line), freq="D")
 
             # connect future to past
             future_line = np.concatenate([[past_prices[-1]], future_line])
