@@ -193,32 +193,33 @@ def index():
             last_price = past_prices[-1]
             last_date = dates.iloc[-1]
 
-            # align prediction start with last price
+            # align prediction start with last real price
             future_line = future_line - future_line[0] + last_price
 
             # -----------------------------------
-            # GEOMETRIC BROWNIAN MOTION (REALISTIC STOCK PATH)
+            # STOCHASTIC MARKET SIMULATION
             # -----------------------------------
 
             returns = np.diff(past_prices) / past_prices[:-1]
 
-            mu = np.mean(returns)
-            sigma = np.std(returns)
+            sigma = np.std(returns) * 2.5   # increase volatility
+            mu = np.mean(returns) * 0.2     # reduce strong upward drift
 
-            dt = 1
+            simulated = [last_price]
 
-            gbm_prices = [last_price]
+            for i in range(len(future_line)-1):
 
-            for _ in range(len(future_line)-1):
+                shock = np.random.normal(mu, sigma)
 
-                shock = np.random.normal(0, sigma * np.sqrt(dt))
-                drift = (mu - 0.5 * sigma**2) * dt
+                next_price = simulated[-1] * (1 + shock)
 
-                next_price = gbm_prices[-1] * np.exp(drift + shock)
+                # avoid negative price
+                if next_price < 1:
+                    next_price = simulated[-1] * 0.95
 
-                gbm_prices.append(next_price)
+                simulated.append(next_price)
 
-            future_line = np.array(gbm_prices)
+            future_line = np.array(simulated)
 
             # -----------------------------------
 
@@ -232,8 +233,8 @@ def index():
             combined_dates = np.concatenate([dates, future_dates])
             combined_prices = np.concatenate([past_prices, future_line])
 
-            # keep enough points so fluctuations remain visible
-            step = max(1, int(len(combined_dates) / 800))
+            # keep more points so fluctuations stay visible
+            step = max(1, int(len(combined_dates) / 1500))
             combined_dates = combined_dates[::step]
             combined_prices = combined_prices[::step]
 
