@@ -161,24 +161,20 @@ def index():
             adjusted_profit = profit_percent / years
 
             if adjusted_profit >= 12:
-
                 decision = "Long-Term Investment"
                 decision_color = "green"
 
             elif adjusted_profit >= 4:
-
                 decision = "Moderate / Short-Term Investment"
                 decision_color = "orange"
 
             else:
-
                 decision = "Not Recommended"
                 decision_color = "red"
 
             volatility = np.std(prices[-60:]) / current_price * 100
 
             if volatility > 8 and years >= 3:
-
                 decision = "High Risk – Not Recommended"
                 decision_color = "red"
 
@@ -201,8 +197,21 @@ def index():
             last_price = past_prices[-1]
             last_date = dates.iloc[-1]
 
-            # shift predictions so first predicted value = last real value
+            # align first prediction with last real value
             future_line = future_line - future_line[0] + last_price
+
+            # -----------------------------------
+            # ADD REALISTIC MARKET VOLATILITY
+            # -----------------------------------
+
+            volatility = np.std(past_prices[-60:]) * 0.12
+
+            for i in range(1, len(future_line)):
+                noise = np.random.normal(0, volatility)
+                future_line[i] = future_line[i-1] + noise + (future_line[i] - future_line[i-1]) * 0.4
+
+            # ensure first point exact
+            future_line[0] = last_price
 
             future_dates = pd.date_range(
                 start=last_date + pd.Timedelta(days=1),
@@ -214,7 +223,7 @@ def index():
             combined_dates = np.concatenate([dates, future_dates])
             combined_prices = np.concatenate([past_prices, future_line])
 
-            # reduce density for long predictions
+            # reduce density for long forecasts
             step = max(1, int(len(combined_dates) / 200))
             combined_dates = combined_dates[::step]
             combined_prices = combined_prices[::step]
