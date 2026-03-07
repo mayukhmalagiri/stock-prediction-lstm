@@ -101,7 +101,7 @@ def index():
             prices = pd.to_numeric(prices, errors="coerce").dropna()
             prices = prices.values.reshape(-1, 1)
 
-            # Scale
+            # Scale prices
             scaler = MinMaxScaler()
             scaled_prices = scaler.fit_transform(prices)
 
@@ -109,6 +109,7 @@ def index():
             model_path = os.path.join(MODEL_DIR, f"{selected_stock}.h5")
             model = load_model(model_path)
 
+            # Last window for LSTM
             last_window = scaled_prices[-WINDOW_SIZE:].flatten()
 
             future_days = FUTURE_DAYS_MAP[selected_future]
@@ -159,17 +160,21 @@ def index():
             dates = df["date"].iloc[-past_days:]
             past_prices = prices.flatten()[-past_days:]
 
+            # future predictions
             future_line = future_predictions.flatten()
-            future_line = future_line - future_line[0] + past_prices[-1]
+
+            # shift prediction so it continues from last past price
+            if len(future_line) > 0:
+                offset = past_prices[-1] - future_line[0]
+                future_line = future_line + offset
 
             last_date = dates.iloc[-1]
 
-            future_dates = pd.date_range(start=last_date + pd.Timedelta(days=1),  periods=len(future_line), freq="D")
-
-            # connect future to past
-            future_line = np.concatenate([[past_prices[-1]], future_line])
-            future_dates = list(future_dates)
-            future_dates.insert(0, last_date)
+            future_dates = pd.date_range(
+                start=last_date + pd.Timedelta(days=1),
+                periods=len(future_line),
+                freq="D"
+            )
 
             past_trace = go.Scatter(
                 x=dates,
