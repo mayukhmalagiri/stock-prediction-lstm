@@ -39,7 +39,7 @@ FUTURE_DAYS_MAP = {
 }
 
 # -----------------------------------
-# MODEL CACHE (FAST LOADING)
+# MODEL CACHE
 # -----------------------------------
 
 MODEL_CACHE = {}
@@ -51,7 +51,7 @@ def get_model(stock):
 
 
 # -----------------------------------
-# ITERATIVE FUTURE PREDICTION
+# FUTURE PREDICTION
 # -----------------------------------
 
 def predict_future(model, last_window, scaler, future_days):
@@ -194,51 +194,37 @@ def index():
                 past_days = 756
 
             dates = df["date"].iloc[-past_days:]
-
             past_prices = prices.flatten()[-past_days:]
 
             future_line = future_predictions.flatten()
 
             last_price = past_prices[-1]
-
             last_date = dates.iloc[-1]
 
-            # shift predictions so they start from last price
+            # shift predictions so first predicted value = last real value
             future_line = future_line - future_line[0] + last_price
 
-            # add last real price at beginning so lines join
-            future_line = np.insert(future_line, 0, last_price)
-
             future_dates = pd.date_range(
-                start=last_date,
+                start=last_date + pd.Timedelta(days=1),
                 periods=len(future_line),
                 freq="D"
             )
 
-            # reduce graph density for long predictions
-            step = max(1, int(len(future_dates) / 150))
+            # combine past + future
+            combined_dates = np.concatenate([dates, future_dates])
+            combined_prices = np.concatenate([past_prices, future_line])
 
-            future_dates = future_dates[::step]
-            future_line = future_line[::step]
+            # reduce density for long predictions
+            step = max(1, int(len(combined_dates) / 200))
+            combined_dates = combined_dates[::step]
+            combined_prices = combined_prices[::step]
 
-            # -----------------------------------
-            # PLOT
-            # -----------------------------------
-
-            past_trace = go.Scatter(
-                x=dates,
-                y=past_prices,
+            trace = go.Scatter(
+                x=combined_dates,
+                y=combined_prices,
                 mode='lines',
-                name='Past Prices',
+                name='Stock Price',
                 line=dict(color='blue', width=3)
-            )
-
-            future_trace = go.Scatter(
-                x=future_dates,
-                y=future_line,
-                mode='lines',
-                name='Predicted Future',
-                line=dict(color='red', width=3, dash='dash')
             )
 
             layout = go.Layout(
@@ -248,7 +234,7 @@ def index():
                 template="plotly_white"
             )
 
-            fig = go.Figure(data=[past_trace, future_trace], layout=layout)
+            fig = go.Figure(data=[trace], layout=layout)
 
             graph_url = pyo.plot(
                 fig,
