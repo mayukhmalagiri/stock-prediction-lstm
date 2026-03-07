@@ -103,21 +103,21 @@ def index():
 
             csv_path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
 
-            df = pd.read_csv(csv_path)
+            # FIX: remove extra TSLA header row
+            df = pd.read_csv(csv_path, skiprows=[1])
 
             df.columns = [c.strip().lower() for c in df.columns]
 
-            if "date" in df.columns:
-                df["date"] = pd.to_datetime(df["date"])
-            else:
-                df["date"] = pd.date_range(start="2000-01-01", periods=len(df))
+            df["date"] = pd.to_datetime(df["date"])
 
-            if "close" in df.columns:
-                prices = df["close"]
-            else:
-                prices = df["adj close"]
+            prices = df["close"]
 
-            prices = pd.to_numeric(prices, errors="coerce").dropna()
+            prices = pd.to_numeric(prices, errors="coerce")
+
+            # remove invalid values
+            prices = prices[prices > 0]
+            prices = prices.dropna()
+
             prices = prices.values.reshape(-1, 1)
 
             # -----------------------------------
@@ -188,38 +188,29 @@ def index():
             dates = df["date"].iloc[-past_days:]
             past_prices = prices.flatten()[-past_days:]
 
-            future_line = future_predictions.flatten()
-
             last_price = past_prices[-1]
             last_date = dates.iloc[-1]
 
-            # align prediction start with last real price
+            future_line = future_predictions.flatten()
+
+            # align prediction start with last price
             future_line = future_line - future_line[0] + last_price
 
             # -----------------------------------
-            # STOCHASTIC MARKET SIMULATION
+            # ADD REALISTIC MARKET VOLATILITY
             # -----------------------------------
 
             returns = np.diff(past_prices) / past_prices[:-1]
 
-            sigma = np.std(returns) * 2.5   # increase volatility
-            mu = np.mean(returns) * 0.2     # reduce strong upward drift
+            sigma = np.std(returns)
 
-            simulated = [last_price]
+            for i in range(1, len(future_line)):
 
-            for i in range(len(future_line)-1):
+                noise = np.random.normal(0, sigma)
 
-                shock = np.random.normal(mu, sigma)
+                trend = future_line[i] - future_line[i-1]
 
-                next_price = simulated[-1] * (1 + shock)
-
-                # avoid negative price
-                if next_price < 1:
-                    next_price = simulated[-1] * 0.95
-
-                simulated.append(next_price)
-
-            future_line = np.array(simulated)
+                future_line[i] = future_line[i-1] + trend + (noise * future_line[i-1])
 
             # -----------------------------------
 
@@ -232,11 +223,6 @@ def index():
             # combine past + future
             combined_dates = np.concatenate([dates, future_dates])
             combined_prices = np.concatenate([past_prices, future_line])
-
-            # keep more points so fluctuations stay visible
-            step = max(1, int(len(combined_dates) / 1500))
-            combined_dates = combined_dates[::step]
-            combined_prices = combined_prices[::step]
 
             trace = go.Scatter(
                 x=combined_dates,
@@ -294,4 +280,5 @@ def index():
 if __name__ == "__main__":
 
     port = int(os.environ.get("PORT", 5000))
+
     app.run(host="0.0.0.0", port=port)
