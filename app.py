@@ -133,7 +133,6 @@ def index():
 
             last_window = scaled_prices[-WINDOW_SIZE:].flatten()
 
-            # limit prediction length for server stability
             future_days = min(FUTURE_DAYS_MAP[selected_future], 120)
 
             future_predictions = predict_future(
@@ -184,7 +183,6 @@ def index():
             else:
                 past_days = 756
 
-            # limit points for faster plotting
             past_days = min(past_days, 200)
 
             dates = df["date"].iloc[-past_days:]
@@ -192,13 +190,24 @@ def index():
 
             future_line = future_predictions.flatten()
 
-            # join prediction with last past value
-            future_line = np.insert(future_line, 0, past_prices[-1])
+            # ---- FIX 1: align prediction with last real price ----
+            if len(future_line) > 0:
+                shift = past_prices[-1] - future_line[0]
+                future_line = future_line + shift
+
+            # ---- FIX 2: add realistic volatility ----
+            volatility = np.std(past_prices[-60:]) * 0.15
+            noise = np.random.normal(0, volatility, len(future_line))
+
+            future_line = future_line + noise
+
+            # ---- FIX 3: keep starting point exactly same ----
+            future_line[0] = past_prices[-1]
 
             last_date = dates.iloc[-1]
 
             future_dates = pd.date_range(
-                start=last_date,
+                start=last_date + pd.Timedelta(days=1),
                 periods=len(future_line),
                 freq="D"
             )
