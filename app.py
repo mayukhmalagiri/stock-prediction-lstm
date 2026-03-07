@@ -103,7 +103,6 @@ def index():
 
             csv_path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
 
-            # FIX: remove extra TSLA header row
             df = pd.read_csv(csv_path, skiprows=[1])
 
             df.columns = [c.strip().lower() for c in df.columns]
@@ -114,7 +113,6 @@ def index():
 
             prices = pd.to_numeric(prices, errors="coerce")
 
-            # remove invalid values
             prices = prices[prices > 0]
             prices = prices.dropna()
 
@@ -197,7 +195,7 @@ def index():
             future_line = future_line - future_line[0] + last_price
 
             # -----------------------------------
-            # ADD REALISTIC MARKET VOLATILITY
+            # ADD SMALL MARKET VOLATILITY
             # -----------------------------------
 
             returns = np.diff(past_prices) / past_prices[:-1]
@@ -208,9 +206,8 @@ def index():
 
                 noise = np.random.normal(0, sigma)
 
-                trend = future_line[i] - future_line[i-1]
-
-                future_line[i] = future_line[i-1] + trend + (noise * future_line[i-1])
+                # small fluctuation around prediction
+                future_line[i] = future_line[i] * (1 + noise)
 
             # -----------------------------------
 
@@ -220,7 +217,6 @@ def index():
                 freq="D"
             )
 
-            # combine past + future
             combined_dates = np.concatenate([dates, future_dates])
             combined_prices = np.concatenate([past_prices, future_line])
 
@@ -247,8 +243,6 @@ def index():
                 include_plotlyjs=False
             )
 
-            # -----------------------------------
-
             result = {
                 "stock": selected_stock,
                 "current_price": round(current_price, 2),
@@ -260,6 +254,7 @@ def index():
             }
 
         except Exception as e:
+
             result = {"error": str(e)}
 
     return render_template(
