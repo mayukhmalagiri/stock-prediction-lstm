@@ -118,7 +118,6 @@ def index():
                 prices = df["adj close"]
 
             prices = pd.to_numeric(prices, errors="coerce").dropna()
-
             prices = prices.values.reshape(-1, 1)
 
             # -----------------------------------
@@ -126,7 +125,6 @@ def index():
             # -----------------------------------
 
             scaler = MinMaxScaler()
-
             scaled_prices = scaler.fit_transform(prices)
 
             # -----------------------------------
@@ -147,7 +145,6 @@ def index():
             )
 
             future_price = future_predictions[-1][0]
-
             current_price = prices[-1][0]
 
             profit_percent = ((future_price - current_price) / current_price) * 100
@@ -157,7 +154,6 @@ def index():
             # -----------------------------------
 
             years = int(selected_future[0])
-
             adjusted_profit = profit_percent / years
 
             if adjusted_profit >= 12:
@@ -197,21 +193,34 @@ def index():
             last_price = past_prices[-1]
             last_date = dates.iloc[-1]
 
-            # align first prediction with last real value
+            # align prediction start with last price
             future_line = future_line - future_line[0] + last_price
 
             # -----------------------------------
-            # ADD REALISTIC MARKET VOLATILITY
+            # GEOMETRIC BROWNIAN MOTION (REALISTIC STOCK PATH)
             # -----------------------------------
 
-            volatility = np.std(past_prices[-60:]) * 0.12
+            returns = np.diff(past_prices) / past_prices[:-1]
 
-            for i in range(1, len(future_line)):
-                noise = np.random.normal(0, volatility)
-                future_line[i] = future_line[i-1] + noise + (future_line[i] - future_line[i-1]) * 0.4
+            mu = np.mean(returns)
+            sigma = np.std(returns)
 
-            # ensure first point exact
-            future_line[0] = last_price
+            dt = 1
+
+            gbm_prices = [last_price]
+
+            for _ in range(len(future_line)-1):
+
+                shock = np.random.normal(0, sigma * np.sqrt(dt))
+                drift = (mu - 0.5 * sigma**2) * dt
+
+                next_price = gbm_prices[-1] * np.exp(drift + shock)
+
+                gbm_prices.append(next_price)
+
+            future_line = np.array(gbm_prices)
+
+            # -----------------------------------
 
             future_dates = pd.date_range(
                 start=last_date + pd.Timedelta(days=1),
@@ -223,8 +232,8 @@ def index():
             combined_dates = np.concatenate([dates, future_dates])
             combined_prices = np.concatenate([past_prices, future_line])
 
-            # reduce density for long forecasts
-            step = max(1, int(len(combined_dates) / 200))
+            # keep enough points so fluctuations remain visible
+            step = max(1, int(len(combined_dates) / 800))
             combined_dates = combined_dates[::step]
             combined_prices = combined_prices[::step]
 
@@ -264,7 +273,6 @@ def index():
             }
 
         except Exception as e:
-
             result = {"error": str(e)}
 
     return render_template(
@@ -285,5 +293,4 @@ def index():
 if __name__ == "__main__":
 
     port = int(os.environ.get("PORT", 5000))
-
     app.run(host="0.0.0.0", port=port)
