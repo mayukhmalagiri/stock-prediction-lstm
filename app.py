@@ -48,7 +48,7 @@ def get_model(stock):
     if stock not in MODEL_CACHE:
         MODEL_CACHE[stock] = load_model(
             os.path.join(MODEL_DIR, f"{stock}.h5"),
-            compile=False   # FIX for time_major error
+            compile=False
         )
     return MODEL_CACHE[stock]
 
@@ -106,16 +106,20 @@ def index():
 
             csv_path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
 
+            # FIX: skip ticker row present in yahoo csv
             df = pd.read_csv(csv_path)
 
             df.columns = [c.strip().lower() for c in df.columns]
 
+            # remove ticker rows if present
+            df = df[df["date"] != "Ticker"]
+
             df["date"] = pd.to_datetime(df["date"], errors="coerce")
             df["close"] = pd.to_numeric(df["close"], errors="coerce")
 
-            # Remove invalid rows
+            # remove invalid rows
             df = df.dropna(subset=["date", "close"])
-            df = df[df["close"] > 1]   # remove zero rows
+            df = df[df["close"] > 5]
 
             df = df.sort_values("date").reset_index(drop=True)
 
@@ -194,11 +198,9 @@ def index():
 
             future_line = future_predictions.flatten()
 
-            # Anchor predictions to last real price
             future_line = future_line - future_line[0] + last_price
             future_line[0] = last_price
 
-            # Add realistic volatility
             returns = np.diff(past_prices) / past_prices[:-1]
             sigma = np.std(returns)
 
@@ -209,7 +211,7 @@ def index():
                 future_line[i] = future_line[i] * (1 + noise)
 
             # -----------------------------------
-            # FUTURE DATES (BUSINESS DAYS)
+            # FUTURE DATES
             # -----------------------------------
 
             future_dates = pd.bdate_range(
@@ -222,7 +224,6 @@ def index():
             combined_dates = np.concatenate([dates, future_dates])
             combined_prices = np.concatenate([past_prices, future_line])
 
-            # Reduce density for smoother graph
             step = max(1, int(len(combined_dates) / 200))
 
             combined_dates = combined_dates[::step]
