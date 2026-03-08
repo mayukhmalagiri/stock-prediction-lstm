@@ -106,20 +106,17 @@ def index():
 
             csv_path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
 
-            # FIX: skip ticker row present in yahoo csv
-            df = pd.read_csv(csv_path)
+            # FIX: skip Yahoo Finance ticker row
+            df = pd.read_csv(csv_path, skiprows=[1])
 
             df.columns = [c.strip().lower() for c in df.columns]
-
-            # remove ticker rows if present
-            df = df[df["date"] != "Ticker"]
 
             df["date"] = pd.to_datetime(df["date"], errors="coerce")
             df["close"] = pd.to_numeric(df["close"], errors="coerce")
 
-            # remove invalid rows
+            # Remove invalid rows
             df = df.dropna(subset=["date", "close"])
-            df = df[df["close"] > 5]
+            df = df[df["close"] > 0]
 
             df = df.sort_values("date").reset_index(drop=True)
 
