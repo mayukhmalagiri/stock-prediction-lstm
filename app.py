@@ -46,7 +46,10 @@ MODEL_CACHE = {}
 
 def get_model(stock):
     if stock not in MODEL_CACHE:
-        MODEL_CACHE[stock] = load_model(os.path.join(MODEL_DIR, f"{stock}.h5"))
+        MODEL_CACHE[stock] = load_model(
+            os.path.join(MODEL_DIR, f"{stock}.h5"),
+            compile=False   # FIX for time_major error
+        )
     return MODEL_CACHE[stock]
 
 
@@ -110,11 +113,10 @@ def index():
             df["date"] = pd.to_datetime(df["date"], errors="coerce")
             df["close"] = pd.to_numeric(df["close"], errors="coerce")
 
-            # remove bad rows
+            # Remove invalid rows
             df = df.dropna(subset=["date", "close"])
-            df = df[df["close"] > 0]
+            df = df[df["close"] > 1]   # remove zero rows
 
-            # IMPORTANT FIX
             df = df.sort_values("date").reset_index(drop=True)
 
             prices = df["close"].values.reshape(-1, 1)
@@ -187,37 +189,40 @@ def index():
             last_date = dates[-1]
 
             # -----------------------------------
-            # FIX PREDICTION CURVE
+            # FUTURE LINE
             # -----------------------------------
 
             future_line = future_predictions.flatten()
 
-            # anchor prediction exactly to last real price
+            # Anchor predictions to last real price
             future_line = future_line - future_line[0] + last_price
             future_line[0] = last_price
 
-            # realistic fluctuation
+            # Add realistic volatility
             returns = np.diff(past_prices) / past_prices[:-1]
             sigma = np.std(returns)
 
             for i in range(1, len(future_line)):
 
-                noise = np.random.normal(0, sigma * 0.35)
+                noise = np.random.normal(0, sigma * 0.4)
 
                 future_line[i] = future_line[i] * (1 + noise)
 
             # -----------------------------------
+            # FUTURE DATES (BUSINESS DAYS)
+            # -----------------------------------
 
-            future_dates = pd.date_range(
-                start=last_date + pd.Timedelta(days=1),
-                periods=len(future_line),
-                freq="D"
-            )
+            future_dates = pd.bdate_range(
+                start=last_date,
+                periods=len(future_line)
+            )[1:]
+
+            future_line = future_line[:len(future_dates)]
 
             combined_dates = np.concatenate([dates, future_dates])
             combined_prices = np.concatenate([past_prices, future_line])
 
-            # reduce plotted points so graph shows fluctuations
+            # Reduce density for smoother graph
             step = max(1, int(len(combined_dates) / 200))
 
             combined_dates = combined_dates[::step]
