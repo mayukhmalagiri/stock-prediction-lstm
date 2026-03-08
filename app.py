@@ -106,7 +106,6 @@ def index():
 
             csv_path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
 
-            # FIX: skip Yahoo Finance ticker row
             df = pd.read_csv(csv_path, skiprows=[1])
 
             df.columns = [c.strip().lower() for c in df.columns]
@@ -114,7 +113,6 @@ def index():
             df["date"] = pd.to_datetime(df["date"], errors="coerce")
             df["close"] = pd.to_numeric(df["close"], errors="coerce")
 
-            # Remove invalid rows
             df = df.dropna(subset=["date", "close"])
             df = df[df["close"] > 0]
 
@@ -190,22 +188,29 @@ def index():
             last_date = dates[-1]
 
             # -----------------------------------
-            # FUTURE LINE
+            # FUTURE LINE (NEW METHOD)
             # -----------------------------------
 
-            future_line = future_predictions.flatten()
-
-            future_line = future_line - future_line[0] + last_price
-            future_line[0] = last_price
+            steps = len(future_predictions)
 
             returns = np.diff(past_prices) / past_prices[:-1]
             sigma = np.std(returns)
 
-            for i in range(1, len(future_line)):
+            future_line = [last_price]
 
-                noise = np.random.normal(0, sigma * 0.4)
+            trend = (future_price - last_price) / steps
 
-                future_line[i] = future_line[i] * (1 + noise)
+            for i in range(1, steps):
+
+                noise = np.random.normal(0, sigma * last_price)
+
+                next_price = future_line[-1] + trend + noise
+
+                next_price = max(1, next_price)
+
+                future_line.append(next_price)
+
+            future_line = np.array(future_line)
 
             # -----------------------------------
             # FUTURE DATES
@@ -220,11 +225,6 @@ def index():
 
             combined_dates = np.concatenate([dates, future_dates])
             combined_prices = np.concatenate([past_prices, future_line])
-
-            step = max(1, int(len(combined_dates) / 200))
-
-            combined_dates = combined_dates[::step]
-            combined_prices = combined_prices[::step]
 
             trace = go.Scatter(
                 x=combined_dates,
