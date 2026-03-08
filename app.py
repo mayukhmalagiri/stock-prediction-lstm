@@ -114,7 +114,8 @@ def index():
             df = df.dropna(subset=["date", "close"])
             df = df[df["close"] > 0]
 
-            df = df.sort_values("date")
+            # IMPORTANT FIX
+            df = df.sort_values("date").reset_index(drop=True)
 
             prices = df["close"].values.reshape(-1, 1)
 
@@ -191,8 +192,9 @@ def index():
 
             future_line = future_predictions.flatten()
 
-            # anchor prediction to last real price
+            # anchor prediction exactly to last real price
             future_line = future_line - future_line[0] + last_price
+            future_line[0] = last_price
 
             # realistic fluctuation
             returns = np.diff(past_prices) / past_prices[:-1]
@@ -200,7 +202,7 @@ def index():
 
             for i in range(1, len(future_line)):
 
-                noise = np.random.normal(0, sigma * 0.25)
+                noise = np.random.normal(0, sigma * 0.35)
 
                 future_line[i] = future_line[i] * (1 + noise)
 
@@ -214,6 +216,12 @@ def index():
 
             combined_dates = np.concatenate([dates, future_dates])
             combined_prices = np.concatenate([past_prices, future_line])
+
+            # reduce plotted points so graph shows fluctuations
+            step = max(1, int(len(combined_dates) / 200))
+
+            combined_dates = combined_dates[::step]
+            combined_prices = combined_prices[::step]
 
             trace = go.Scatter(
                 x=combined_dates,
