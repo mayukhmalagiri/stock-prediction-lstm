@@ -103,15 +103,18 @@ def index():
 
             csv_path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
 
-            df = pd.read_csv(csv_path, skiprows=[1])
+            df = pd.read_csv(csv_path)
 
             df.columns = [c.strip().lower() for c in df.columns]
 
-            df["date"] = pd.to_datetime(df["date"])
+            df["date"] = pd.to_datetime(df["date"], errors="coerce")
             df["close"] = pd.to_numeric(df["close"], errors="coerce")
 
-            df = df.dropna(subset=["close"])
+            # remove bad rows
+            df = df.dropna(subset=["date", "close"])
             df = df[df["close"] > 0]
+
+            df = df.sort_values("date")
 
             prices = df["close"].values.reshape(-1, 1)
 
@@ -176,28 +179,28 @@ def index():
 
             past_df = df.tail(past_days)
 
-            dates = past_df["date"].values
-            past_prices = past_df["close"].values
+            dates = past_df["date"].to_numpy()
+            past_prices = past_df["close"].to_numpy()
 
             last_price = past_prices[-1]
             last_date = dates[-1]
 
             # -----------------------------------
-            # FUTURE LINE (stable prediction)
+            # FIX PREDICTION CURVE
             # -----------------------------------
 
             future_line = future_predictions.flatten()
 
-            # anchor predictions to last real price
+            # anchor prediction to last real price
             future_line = future_line - future_line[0] + last_price
 
-            # add realistic noise
+            # realistic fluctuation
             returns = np.diff(past_prices) / past_prices[:-1]
             sigma = np.std(returns)
 
             for i in range(1, len(future_line)):
 
-                noise = np.random.normal(0, sigma * 0.15)
+                noise = np.random.normal(0, sigma * 0.25)
 
                 future_line[i] = future_line[i] * (1 + noise)
 
