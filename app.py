@@ -103,18 +103,15 @@ def index():
 
             csv_path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
 
-            # remove Yahoo Finance second header row
             df = pd.read_csv(csv_path, skiprows=[1])
 
             df.columns = [c.strip().lower() for c in df.columns]
 
             df["date"] = pd.to_datetime(df["date"])
-
             df["close"] = pd.to_numeric(df["close"], errors="coerce")
 
-            # remove invalid values while keeping rows aligned
-            df = df[df["close"] > 0]
             df = df.dropna(subset=["close"])
+            df = df[df["close"] > 0]
 
             prices = df["close"].values.reshape(-1, 1)
 
@@ -166,12 +163,6 @@ def index():
                 decision = "Not Recommended"
                 decision_color = "red"
 
-            volatility = np.std(prices[-60:]) / current_price * 100
-
-            if volatility > 8 and years >= 3:
-                decision = "High Risk – Not Recommended"
-                decision_color = "red"
-
             # -----------------------------------
             # GRAPH SECTION
             # -----------------------------------
@@ -183,27 +174,30 @@ def index():
             else:
                 past_days = 756
 
-            dates = df["date"].values[-past_days:]
-            past_prices = df["close"].values[-past_days:]
+            past_df = df.tail(past_days)
+
+            dates = past_df["date"].values
+            past_prices = past_df["close"].values
 
             last_price = past_prices[-1]
             last_date = dates[-1]
 
+            # -----------------------------------
+            # FUTURE LINE (stable prediction)
+            # -----------------------------------
+
             future_line = future_predictions.flatten()
 
-            # start prediction exactly from last real price
-            future_line[0] = last_price
+            # anchor predictions to last real price
+            future_line = future_line - future_line[0] + last_price
 
-            # -----------------------------------
-            # ADD SMALL MARKET VOLATILITY
-            # -----------------------------------
-
+            # add realistic noise
             returns = np.diff(past_prices) / past_prices[:-1]
             sigma = np.std(returns)
 
             for i in range(1, len(future_line)):
 
-                noise = np.random.normal(0, sigma * 0.25)
+                noise = np.random.normal(0, sigma * 0.15)
 
                 future_line[i] = future_line[i] * (1 + noise)
 
