@@ -103,20 +103,20 @@ def index():
 
             csv_path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
 
+            # remove Yahoo Finance second header row
             df = pd.read_csv(csv_path, skiprows=[1])
 
             df.columns = [c.strip().lower() for c in df.columns]
 
             df["date"] = pd.to_datetime(df["date"])
 
-            prices = df["close"]
+            df["close"] = pd.to_numeric(df["close"], errors="coerce")
 
-            prices = pd.to_numeric(prices, errors="coerce")
+            # remove invalid values while keeping rows aligned
+            df = df[df["close"] > 0]
+            df = df.dropna(subset=["close"])
 
-            prices = prices[prices > 0]
-            prices = prices.dropna()
-
-            prices = prices.values.reshape(-1, 1)
+            prices = df["close"].values.reshape(-1, 1)
 
             # -----------------------------------
             # SCALE DATA
@@ -183,19 +183,19 @@ def index():
             else:
                 past_days = 756
 
-            dates = df["date"].iloc[-past_days:]
-            past_prices = prices.flatten()[-past_days:]
+            dates = df["date"].values[-past_days:]
+            past_prices = df["close"].values[-past_days:]
 
             last_price = past_prices[-1]
-            last_date = dates.iloc[-1]
+            last_date = dates[-1]
 
             future_line = future_predictions.flatten()
 
-            # start prediction exactly from last price
+            # start prediction exactly from last real price
             future_line[0] = last_price
 
             # -----------------------------------
-            # ADD REALISTIC SMALL VOLATILITY
+            # ADD SMALL MARKET VOLATILITY
             # -----------------------------------
 
             returns = np.diff(past_prices) / past_prices[:-1]
@@ -203,9 +203,9 @@ def index():
 
             for i in range(1, len(future_line)):
 
-                noise = np.random.normal(0, sigma * 0.3)
+                noise = np.random.normal(0, sigma * 0.25)
 
-                future_line[i] = future_line[i] + noise * future_line[i]
+                future_line[i] = future_line[i] * (1 + noise)
 
             # -----------------------------------
 
