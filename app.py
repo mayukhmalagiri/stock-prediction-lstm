@@ -191,23 +191,21 @@ def index():
 
             future_line = future_predictions.flatten()
 
-            # align prediction start with last price
-            future_line = future_line - future_line[0] + last_price
+            # start prediction exactly from last price
+            future_line[0] = last_price
 
             # -----------------------------------
-            # ADD SMALL MARKET VOLATILITY
+            # ADD REALISTIC SMALL VOLATILITY
             # -----------------------------------
 
             returns = np.diff(past_prices) / past_prices[:-1]
-
             sigma = np.std(returns)
 
             for i in range(1, len(future_line)):
 
-                noise = np.random.normal(0, sigma)
+                noise = np.random.normal(0, sigma * 0.3)
 
-                # small fluctuation around prediction
-                future_line[i] = future_line[i] * (1 + noise)
+                future_line[i] = future_line[i] + noise * future_line[i]
 
             # -----------------------------------
 
