@@ -52,6 +52,7 @@ def get_model(stock):
         )
     return MODEL_CACHE[stock]
 
+
 # -----------------------------------
 # FUTURE PREDICTION
 # -----------------------------------
@@ -63,7 +64,7 @@ def predict_future(model, last_window, scaler, future_days):
 
     for _ in range(future_days):
 
-        input_data = window.reshape(1, WINDOW_SIZE, 1)
+        input_data = window.reshape(1, window.shape[0], 1)
 
         next_scaled = model.predict(input_data, verbose=0)[0][0]
 
@@ -73,10 +74,10 @@ def predict_future(model, last_window, scaler, future_days):
 
     predictions = np.array(predictions).reshape(-1, 1)
 
-    # Convert back to real prices
     predictions = scaler.inverse_transform(predictions)
 
     return predictions
+
 
 # -----------------------------------
 # HOME
@@ -143,9 +144,7 @@ def index():
                 future_days
             )
 
-            future_line = future_predictions.flatten()
-
-            future_price = future_line[-1]
+            future_price = future_predictions[-1][0]
             current_price = prices[-1][0]
 
             profit_percent = ((future_price - current_price) / current_price) * 100
@@ -170,7 +169,7 @@ def index():
                 decision_color = "red"
 
             # -----------------------------------
-            # PAST RANGE
+            # GRAPH SECTION
             # -----------------------------------
 
             if selected_past == "6m":
@@ -185,7 +184,33 @@ def index():
             dates = past_df["date"].to_numpy()
             past_prices = past_df["close"].to_numpy()
 
+            last_price = past_prices[-1]
             last_date = dates[-1]
+
+            # -----------------------------------
+            # FUTURE LINE (NEW METHOD)
+            # -----------------------------------
+
+            steps = len(future_predictions)
+
+            returns = np.diff(past_prices) / past_prices[:-1]
+            sigma = np.std(returns)
+
+            future_line = [last_price]
+
+            trend = (future_price - last_price) / steps
+
+            for i in range(1, steps):
+
+                noise = np.random.normal(0, sigma * last_price)
+
+                next_price = future_line[-1] + trend + noise
+
+                next_price = max(1, next_price)
+
+                future_line.append(next_price)
+
+            future_line = np.array(future_line)
 
             # -----------------------------------
             # FUTURE DATES
@@ -193,47 +218,36 @@ def index():
 
             future_dates = pd.bdate_range(
                 start=last_date,
-                periods=len(future_line) + 1
+                periods=len(future_line)
             )[1:]
 
-            # -----------------------------------
-            # GRAPH
-            # -----------------------------------
+            future_line = future_line[:len(future_dates)]
 
-            past_trace = go.Scatter(
-                x=dates,
-                y=past_prices,
+            combined_dates = np.concatenate([dates, future_dates])
+            combined_prices = np.concatenate([past_prices, future_line])
+
+            trace = go.Scatter(
+                x=combined_dates,
+                y=combined_prices,
                 mode='lines',
-                name='Historical Price',
+                name='Stock Price',
                 line=dict(color='blue', width=3)
             )
 
-            future_trace = go.Scatter(
-                x=future_dates,
-                y=future_line,
-                mode='lines',
-                name='Predicted Price',
-                line=dict(color='red', width=3, dash='dash')
-            )
-
-            fig = go.Figure(data=[past_trace, future_trace])
-
-            fig.update_layout(
+            layout = go.Layout(
                 title=f"{selected_stock} Stock Price Forecast",
-                xaxis_title="Date",
-                yaxis_title="Price per Share ($)",
+                xaxis=dict(title="Date"),
+                yaxis=dict(title="Price per Share ($)"),
                 template="plotly_white"
             )
+
+            fig = go.Figure(data=[trace], layout=layout)
 
             graph_url = pyo.plot(
                 fig,
                 output_type='div',
                 include_plotlyjs=False
             )
-
-            # -----------------------------------
-            # RESULT
-            # -----------------------------------
 
             result = {
                 "stock": selected_stock,
@@ -258,6 +272,7 @@ def index():
         selected_past=selected_past,
         selected_future=selected_future
     )
+
 
 # -----------------------------------
 # RUN
