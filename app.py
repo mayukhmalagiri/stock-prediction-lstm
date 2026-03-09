@@ -117,54 +117,27 @@ def index():
                 decision = "Not Recommended"
                 color = "red"
 
-            # ------------------------------
-            # HISTORICAL DATA
-            # ------------------------------
+            # -----------------------------------
+            # PREDICTION PATH GRAPH
+            # -----------------------------------
 
-            if selected_past == "6m":
-                days = 126
-            elif selected_past == "1y":
-                days = 252
-            else:
-                days = 756
+            last_date = df["Date"].iloc[-1]
 
-            hist_df = df.iloc[-days:]
+            future_dates = pd.bdate_range(start=last_date, periods=future_days + 1)
 
-            hist_dates = hist_df["Date"].values
-            hist_prices = hist_df["Close"].values
+            # line from current price to predicted price
+            prediction_path = np.linspace(current_price, future_price, len(future_dates))
 
-            last_hist_date = hist_dates[-1]
-
-            # ------------------------------
-            # FUTURE DATA
-            # ------------------------------
-
-            future_dates = pd.bdate_range(start=last_hist_date, periods=future_days + 1)
-
-            future_prices = np.linspace(current_price, future_price, len(future_dates))
-
-            # ------------------------------
-            # COMBINE INTO ONE LINE
-            # ------------------------------
-
-            all_dates = np.concatenate([hist_dates, future_dates[1:]])
-            all_prices = np.concatenate([hist_prices, future_prices[1:]])
-
-            # ------------------------------
-            # GRAPH
-            # ------------------------------
-
-            line_trace = go.Scatter(
-                x=all_dates,
-                y=all_prices,
+            trace_line = go.Scatter(
+                x=future_dates,
+                y=prediction_path,
                 mode="lines",
-                name="Price",
-                line=dict(color="blue", width=3)
+                name="Prediction Path",
+                line=dict(color="blue", width=4)
             )
 
-            # marker where historical ends
-            marker_current = go.Scatter(
-                x=[last_hist_date],
+            trace_current = go.Scatter(
+                x=[future_dates[0]],
                 y=[current_price],
                 mode="markers+text",
                 marker=dict(color="green", size=12),
@@ -173,8 +146,7 @@ def index():
                 name="Current Price"
             )
 
-            # marker for predicted price
-            marker_prediction = go.Scatter(
+            trace_prediction = go.Scatter(
                 x=[future_dates[-1]],
                 y=[future_price],
                 mode="markers+text",
@@ -184,10 +156,10 @@ def index():
                 name="Prediction"
             )
 
-            fig = go.Figure(data=[line_trace, marker_current, marker_prediction])
+            fig = go.Figure(data=[trace_line, trace_current, trace_prediction])
 
             fig.update_layout(
-                title=f"{selected_stock} Price Forecast",
+                title=f"{selected_stock} Prediction Path",
                 xaxis_title="Date",
                 yaxis_title="Price ($)",
                 template="plotly_white"
