@@ -75,7 +75,6 @@ def predict_future(model, last_window, scaler, future_days):
 
         predictions.append(next_scaled)
 
-        # maintain correct LSTM sequence shape
         window = np.vstack((window[1:], [[next_scaled]]))
 
     predictions = np.array(predictions).reshape(-1,1)
@@ -114,7 +113,6 @@ def index():
 
             df = pd.read_csv(csv_path)
 
-            # remove duplicate ticker row
             df = df[df["Date"].notna()]
 
             df.columns = [c.strip().lower() for c in df.columns]
@@ -142,7 +140,6 @@ def index():
 
             model = get_model(selected_stock)
 
-            # IMPORTANT FIX
             last_window = scaled_prices[-WINDOW_SIZE:]
 
             future_days = FUTURE_DAYS_MAP[selected_future]
@@ -189,12 +186,13 @@ def index():
             else:
                 past_days = 756
 
-            past_df = df.tail(past_days)
+            past_df = df.iloc[-past_days:]
 
             past_dates = past_df["date"]
             past_prices = past_df["close"]
 
             last_date = past_dates.iloc[-1]
+            last_price = past_prices.iloc[-1]
 
             # future dates
             future_dates = pd.bdate_range(
@@ -204,9 +202,9 @@ def index():
 
             future_prices = future_predictions.flatten()
 
-            # connect predicted line with last historical price
+            # connect predicted line to last historical point
             future_dates = np.insert(future_dates.values, 0, last_date)
-            future_prices = np.insert(future_prices, 0, current_price)
+            future_prices = np.insert(future_prices, 0, last_price)
 
             # -----------------------------------
             # PLOTLY GRAPH
