@@ -48,8 +48,10 @@ def get_model(stock):
 
     if stock not in MODEL_CACHE:
 
+        model_path = os.path.join(MODEL_DIR, f"{stock}.h5")
+
         MODEL_CACHE[stock] = load_model(
-            os.path.join(MODEL_DIR, f"{stock}.h5"),
+            model_path,
             compile=False
         )
 
@@ -109,7 +111,10 @@ def index():
 
             csv_path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
 
-            df = pd.read_csv(csv_path, skiprows=[1])
+            df = pd.read_csv(csv_path)
+
+            # remove the duplicate ticker row
+            df = df[df["Date"].notna()]
 
             df.columns = [c.strip().lower() for c in df.columns]
 
@@ -127,7 +132,7 @@ def index():
             # SCALE DATA
             # -----------------------------------
 
-            scaler = MinMaxScaler()
+            scaler = MinMaxScaler(feature_range=(0,1))
             scaled_prices = scaler.fit_transform(prices)
 
             # -----------------------------------
@@ -189,13 +194,17 @@ def index():
 
             last_date = past_dates.iloc[-1]
 
-            # Future business dates
+            # future business dates
             future_dates = pd.bdate_range(
                 start=last_date,
                 periods=future_days + 1
             )[1:]
 
             future_prices = future_predictions.flatten()
+
+            # connect prediction to last historical point
+            future_dates = np.insert(future_dates.values, 0, last_date)
+            future_prices = np.insert(future_prices, 0, current_price)
 
             # -----------------------------------
             # PLOTLY GRAPH
