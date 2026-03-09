@@ -118,29 +118,18 @@ def index():
                 color = "red"
 
             # -----------------------------------
-            # PREDICTION PATH GRAPH
+            # GRAPH (only markers)
             # -----------------------------------
 
             last_date = df["Date"].iloc[-1]
 
             future_dates = pd.bdate_range(start=last_date, periods=future_days + 1)
 
-            # line from current price to predicted price
-            prediction_path = np.linspace(current_price, future_price, len(future_dates))
-
-            trace_line = go.Scatter(
-                x=future_dates,
-                y=prediction_path,
-                mode="lines",
-                name="Prediction Path",
-                line=dict(color="blue", width=4)
-            )
-
             trace_current = go.Scatter(
                 x=[future_dates[0]],
                 y=[current_price],
                 mode="markers+text",
-                marker=dict(color="green", size=12),
+                marker=dict(color="green", size=14),
                 text=["Current Price"],
                 textposition="top center",
                 name="Current Price"
@@ -150,16 +139,16 @@ def index():
                 x=[future_dates[-1]],
                 y=[future_price],
                 mode="markers+text",
-                marker=dict(color="red", size=12),
+                marker=dict(color="red", size=14),
                 text=["Predicted Price"],
                 textposition="top center",
                 name="Prediction"
             )
 
-            fig = go.Figure(data=[trace_line, trace_current, trace_prediction])
+            fig = go.Figure(data=[trace_current, trace_prediction])
 
             fig.update_layout(
-                title=f"{selected_stock} Prediction Path",
+                title=f"{selected_stock} Price Prediction",
                 xaxis_title="Date",
                 yaxis_title="Price ($)",
                 template="plotly_white"
