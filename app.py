@@ -45,11 +45,14 @@ FUTURE_DAYS_MAP = {
 MODEL_CACHE = {}
 
 def get_model(stock):
+
     if stock not in MODEL_CACHE:
+
         MODEL_CACHE[stock] = load_model(
             os.path.join(MODEL_DIR, f"{stock}.h5"),
             compile=False
         )
+
     return MODEL_CACHE[stock]
 
 
@@ -169,7 +172,7 @@ def index():
                 decision_color = "red"
 
             # -----------------------------------
-            # GRAPH SECTION
+            # GRAPH DATA
             # -----------------------------------
 
             if selected_past == "6m":
@@ -181,57 +184,37 @@ def index():
 
             past_df = df.tail(past_days)
 
-            dates = past_df["date"].to_numpy()
-            past_prices = past_df["close"].to_numpy()
+            past_dates = past_df["date"]
+            past_prices = past_df["close"]
 
-            last_price = past_prices[-1]
-            last_date = dates[-1]
+            last_date = past_dates.iloc[-1]
 
-            # -----------------------------------
-            # FUTURE LINE (NEW METHOD)
-            # -----------------------------------
-
-            steps = len(future_predictions)
-
-            returns = np.diff(past_prices) / past_prices[:-1]
-            sigma = np.std(returns)
-
-            future_line = [last_price]
-
-            trend = (future_price - last_price) / steps
-
-            for i in range(1, steps):
-
-                noise = np.random.normal(0, sigma * last_price)
-
-                next_price = future_line[-1] + trend + noise
-
-                next_price = max(1, next_price)
-
-                future_line.append(next_price)
-
-            future_line = np.array(future_line)
-
-            # -----------------------------------
-            # FUTURE DATES
-            # -----------------------------------
-
+            # Future business dates
             future_dates = pd.bdate_range(
                 start=last_date,
-                periods=len(future_line)
+                periods=future_days + 1
             )[1:]
 
-            future_line = future_line[:len(future_dates)]
+            future_prices = future_predictions.flatten()
 
-            combined_dates = np.concatenate([dates, future_dates])
-            combined_prices = np.concatenate([past_prices, future_line])
+            # -----------------------------------
+            # PLOTLY GRAPH
+            # -----------------------------------
 
-            trace = go.Scatter(
-                x=combined_dates,
-                y=combined_prices,
-                mode='lines',
-                name='Stock Price',
-                line=dict(color='blue', width=3)
+            trace_past = go.Scatter(
+                x=past_dates,
+                y=past_prices,
+                mode="lines",
+                name="Historical Price",
+                line=dict(color="blue", width=3)
+            )
+
+            trace_future = go.Scatter(
+                x=future_dates,
+                y=future_prices,
+                mode="lines",
+                name="Predicted Price",
+                line=dict(color="red", width=3, dash="dash")
             )
 
             layout = go.Layout(
@@ -241,11 +224,11 @@ def index():
                 template="plotly_white"
             )
 
-            fig = go.Figure(data=[trace], layout=layout)
+            fig = go.Figure(data=[trace_past, trace_future], layout=layout)
 
             graph_url = pyo.plot(
                 fig,
-                output_type='div',
+                output_type="div",
                 include_plotlyjs=False
             )
 
