@@ -79,7 +79,6 @@ def index():
 
             path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
 
-            # remove the ticker row
             df = pd.read_csv(path, skiprows=[1])
 
             df["Date"] = pd.to_datetime(df["Date"])
@@ -118,6 +117,10 @@ def index():
                 decision = "Not Recommended"
                 color = "red"
 
+            # ------------------------------
+            # HISTORICAL DATA
+            # ------------------------------
+
             if selected_past == "6m":
                 days = 126
             elif selected_past == "1y":
@@ -127,38 +130,66 @@ def index():
 
             hist_df = df.iloc[-days:]
 
-            hist_dates = hist_df["Date"]
-            hist_prices = hist_df["Close"]
+            hist_dates = hist_df["Date"].values
+            hist_prices = hist_df["Close"].values
 
-            last_date = hist_dates.iloc[-1]
+            last_hist_date = hist_dates[-1]
 
-            future_dates = pd.bdate_range(start=last_date, periods=future_days + 1)
+            # ------------------------------
+            # FUTURE DATA
+            # ------------------------------
 
-            # KEY FIX: use current_price as the starting point
+            future_dates = pd.bdate_range(start=last_hist_date, periods=future_days + 1)
+
             future_prices = np.linspace(current_price, future_price, len(future_dates))
 
-            trace_hist = go.Scatter(
-                x=hist_dates,
-                y=hist_prices,
+            # ------------------------------
+            # COMBINE INTO ONE LINE
+            # ------------------------------
+
+            all_dates = np.concatenate([hist_dates, future_dates[1:]])
+            all_prices = np.concatenate([hist_prices, future_prices[1:]])
+
+            # ------------------------------
+            # GRAPH
+            # ------------------------------
+
+            line_trace = go.Scatter(
+                x=all_dates,
+                y=all_prices,
                 mode="lines",
-                name="Historical Price",
+                name="Price",
                 line=dict(color="blue", width=3)
             )
 
-            trace_future = go.Scatter(
-                x=future_dates,
-                y=future_prices,
-                mode="lines",
-                name="Predicted Price",
-                line=dict(color="red", width=3, dash="dash")
+            # marker where historical ends
+            marker_current = go.Scatter(
+                x=[last_hist_date],
+                y=[current_price],
+                mode="markers+text",
+                marker=dict(color="green", size=12),
+                text=["Current Price"],
+                textposition="top center",
+                name="Current Price"
             )
 
-            fig = go.Figure(data=[trace_hist, trace_future])
+            # marker for predicted price
+            marker_prediction = go.Scatter(
+                x=[future_dates[-1]],
+                y=[future_price],
+                mode="markers+text",
+                marker=dict(color="red", size=12),
+                text=["Predicted Price"],
+                textposition="top center",
+                name="Prediction"
+            )
+
+            fig = go.Figure(data=[line_trace, marker_current, marker_prediction])
 
             fig.update_layout(
-                title=f"{selected_stock} Stock Price Forecast",
+                title=f"{selected_stock} Price Forecast",
                 xaxis_title="Date",
-                yaxis_title="Price per Share ($)",
+                yaxis_title="Price ($)",
                 template="plotly_white"
             )
 
