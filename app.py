@@ -69,15 +69,16 @@ def predict_future(model, last_window, scaler, future_days):
 
     for _ in range(future_days):
 
-        input_data = window.reshape(1, window.shape[0], 1)
+        input_data = window.reshape(1, WINDOW_SIZE, 1)
 
         next_scaled = model.predict(input_data, verbose=0)[0][0]
 
         predictions.append(next_scaled)
 
-        window = np.append(window[1:], next_scaled)
+        # maintain correct LSTM sequence shape
+        window = np.vstack((window[1:], [[next_scaled]]))
 
-    predictions = np.array(predictions).reshape(-1, 1)
+    predictions = np.array(predictions).reshape(-1,1)
 
     predictions = scaler.inverse_transform(predictions)
 
@@ -113,7 +114,7 @@ def index():
 
             df = pd.read_csv(csv_path)
 
-            # remove the duplicate ticker row
+            # remove duplicate ticker row
             df = df[df["Date"].notna()]
 
             df.columns = [c.strip().lower() for c in df.columns]
@@ -126,7 +127,7 @@ def index():
 
             df = df.sort_values("date").reset_index(drop=True)
 
-            prices = df["close"].values.reshape(-1, 1)
+            prices = df["close"].values.reshape(-1,1)
 
             # -----------------------------------
             # SCALE DATA
@@ -141,7 +142,8 @@ def index():
 
             model = get_model(selected_stock)
 
-            last_window = scaled_prices[-WINDOW_SIZE:].flatten()
+            # IMPORTANT FIX
+            last_window = scaled_prices[-WINDOW_SIZE:]
 
             future_days = FUTURE_DAYS_MAP[selected_future]
 
@@ -194,7 +196,7 @@ def index():
 
             last_date = past_dates.iloc[-1]
 
-            # future business dates
+            # future dates
             future_dates = pd.bdate_range(
                 start=last_date,
                 periods=future_days + 1
@@ -202,7 +204,7 @@ def index():
 
             future_prices = future_predictions.flatten()
 
-            # connect prediction to last historical point
+            # connect predicted line with last historical price
             future_dates = np.insert(future_dates.values, 0, last_date)
             future_prices = np.insert(future_prices, 0, current_price)
 
@@ -243,9 +245,9 @@ def index():
 
             result = {
                 "stock": selected_stock,
-                "current_price": round(current_price, 2),
-                "future_price": round(future_price, 2),
-                "profit_percent": round(profit_percent, 2),
+                "current_price": round(current_price,2),
+                "future_price": round(future_price,2),
+                "profit_percent": round(profit_percent,2),
                 "decision": decision,
                 "color": decision_color,
                 "years": selected_future
@@ -272,6 +274,6 @@ def index():
 
 if __name__ == "__main__":
 
-    port = int(os.environ.get("PORT", 5000))
+    port = int(os.environ.get("PORT",5000))
 
     app.run(host="0.0.0.0", port=port)
