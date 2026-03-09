@@ -38,61 +38,57 @@ FUTURE_DAYS_MAP = {
     "5y": 1260
 }
 
-# -----------------------------------
-# MODEL CACHE
-# -----------------------------------
-
 MODEL_CACHE = {}
+
+# -----------------------------------
+# LOAD MODEL
+# -----------------------------------
 
 def get_model(stock):
 
     if stock not in MODEL_CACHE:
 
-        model_path = os.path.join(MODEL_DIR, f"{stock}.h5")
+        path = os.path.join(MODEL_DIR, f"{stock}.h5")
 
-        MODEL_CACHE[stock] = load_model(
-            model_path,
-            compile=False
-        )
+        MODEL_CACHE[stock] = load_model(path, compile=False)
 
     return MODEL_CACHE[stock]
 
 
 # -----------------------------------
-# FUTURE PREDICTION
+# LSTM PREDICTION
 # -----------------------------------
 
-def predict_future(model, last_window, scaler, future_days):
+def predict_future(model, window, scaler, days):
 
-    window = last_window.copy()
     predictions = []
+    current_window = window.copy()
 
-    for _ in range(future_days):
+    for _ in range(days):
 
-        input_data = window.reshape(1, WINDOW_SIZE, 1)
+        X = current_window.reshape(1, WINDOW_SIZE, 1)
 
-        next_scaled = model.predict(input_data, verbose=0)[0][0]
+        pred = model.predict(X, verbose=0)[0][0]
 
-        predictions.append(next_scaled)
+        predictions.append(pred)
 
-        window = np.vstack((window[1:], [[next_scaled]]))
+        current_window = np.vstack((current_window[1:], [[pred]]))
 
     predictions = np.array(predictions).reshape(-1,1)
 
-    predictions = scaler.inverse_transform(predictions)
-
-    return predictions
+    return scaler.inverse_transform(predictions)
 
 
 # -----------------------------------
-# HOME
+# ROUTE
 # -----------------------------------
 
-@app.route("/", methods=["GET", "POST"])
+@app.route("/", methods=["GET","POST"])
 def index():
 
     result = None
     graph_url = None
+
     selected_stock = ""
     selected_past = ""
     selected_future = ""
@@ -106,154 +102,139 @@ def index():
         try:
 
             # -----------------------------------
-            # LOAD DATA
+            # LOAD CSV DATA
             # -----------------------------------
 
-            csv_path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
+            path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
 
-            df = pd.read_csv(csv_path)
+            df = pd.read_csv(path)
 
             df = df[df["Date"].notna()]
 
-            df.columns = [c.strip().lower() for c in df.columns]
+            df.columns = [c.lower().strip() for c in df.columns]
 
-            df["date"] = pd.to_datetime(df["date"], errors="coerce")
-            df["close"] = pd.to_numeric(df["close"], errors="coerce")
-
-            df = df.dropna(subset=["date", "close"])
-            df = df[df["close"] > 0]
+            df["date"] = pd.to_datetime(df["date"])
+            df["close"] = pd.to_numeric(df["close"])
 
             df = df.sort_values("date").reset_index(drop=True)
 
             prices = df["close"].values.reshape(-1,1)
 
             # -----------------------------------
-            # SCALE DATA
+            # SCALING
             # -----------------------------------
 
-            scaler = MinMaxScaler(feature_range=(0,1))
-            scaled_prices = scaler.fit_transform(prices)
+            scaler = MinMaxScaler()
+
+            scaled = scaler.fit_transform(prices)
 
             # -----------------------------------
-            # LOAD MODEL
+            # MODEL
             # -----------------------------------
 
             model = get_model(selected_stock)
 
-            last_window = scaled_prices[-WINDOW_SIZE:]
+            last_window = scaled[-WINDOW_SIZE:]
 
             future_days = FUTURE_DAYS_MAP[selected_future]
 
-            future_predictions = predict_future(
-                model,
-                last_window,
-                scaler,
-                future_days
-            )
+            preds = predict_future(model,last_window,scaler,future_days)
 
-            future_price = future_predictions[-1][0]
+            future_price = preds[-1][0]
             current_price = prices[-1][0]
 
-            profit_percent = ((future_price - current_price) / current_price) * 100
+            profit_percent = ((future_price-current_price)/current_price)*100
 
             # -----------------------------------
-            # DECISION LOGIC
+            # DECISION
             # -----------------------------------
 
             years = int(selected_future[0])
-            adjusted_profit = profit_percent / years
 
-            if adjusted_profit >= 12:
-                decision = "Long-Term Investment"
-                decision_color = "green"
+            yearly = profit_percent/years
 
-            elif adjusted_profit >= 4:
-                decision = "Moderate / Short-Term Investment"
-                decision_color = "orange"
-
+            if yearly >= 12:
+                decision="Long-Term Investment"
+                color="green"
+            elif yearly >=4:
+                decision="Moderate Investment"
+                color="orange"
             else:
-                decision = "Not Recommended"
-                decision_color = "red"
+                decision="Not Recommended"
+                color="red"
 
             # -----------------------------------
-            # GRAPH DATA
+            # HISTORICAL GRAPH DATA
             # -----------------------------------
 
-            if selected_past == "6m":
-                past_days = 126
-            elif selected_past == "1y":
-                past_days = 252
+            if selected_past=="6m":
+                days=126
+            elif selected_past=="1y":
+                days=252
             else:
-                past_days = 756
+                days=756
 
-            past_df = df.iloc[-past_days:]
+            hist=df.iloc[-days:]
 
-            past_dates = past_df["date"]
-            past_prices = past_df["close"]
+            hist_dates=hist["date"]
+            hist_prices=hist["close"]
 
-            last_date = past_dates.iloc[-1]
-            last_price = past_prices.iloc[-1]
-
-            # future dates
-            future_dates = pd.bdate_range(
-                start=last_date,
-                periods=future_days + 1
-            )[1:]
-
-            future_prices = future_predictions.flatten()
-
-            # connect predicted line to last historical point
-            future_dates = np.insert(future_dates.values, 0, last_date)
-            future_prices = np.insert(future_prices, 0, last_price)
+            last_date=hist_dates.iloc[-1]
+            last_price=hist_prices.iloc[-1]
 
             # -----------------------------------
-            # PLOTLY GRAPH
+            # FUTURE GRAPH DATA
             # -----------------------------------
 
-            trace_past = go.Scatter(
-                x=past_dates,
-                y=past_prices,
+            future_dates=pd.bdate_range(start=last_date,periods=future_days+1)
+
+            # smooth line from last price → predicted price
+            future_prices=np.linspace(last_price,future_price,len(future_dates))
+
+            # -----------------------------------
+            # PLOTLY
+            # -----------------------------------
+
+            past_line=go.Scatter(
+                x=hist_dates,
+                y=hist_prices,
                 mode="lines",
                 name="Historical Price",
-                line=dict(color="blue", width=3)
+                line=dict(color="blue",width=3)
             )
 
-            trace_future = go.Scatter(
+            future_line=go.Scatter(
                 x=future_dates,
                 y=future_prices,
                 mode="lines",
                 name="Predicted Price",
-                line=dict(color="red", width=3, dash="dash")
+                line=dict(color="red",width=3,dash="dash")
             )
 
-            layout = go.Layout(
+            fig=go.Figure(data=[past_line,future_line])
+
+            fig.update_layout(
                 title=f"{selected_stock} Stock Price Forecast",
-                xaxis=dict(title="Date"),
-                yaxis=dict(title="Price per Share ($)"),
+                xaxis_title="Date",
+                yaxis_title="Price per Share ($)",
                 template="plotly_white"
             )
 
-            fig = go.Figure(data=[trace_past, trace_future], layout=layout)
+            graph_url=pyo.plot(fig,output_type="div",include_plotlyjs=False)
 
-            graph_url = pyo.plot(
-                fig,
-                output_type="div",
-                include_plotlyjs=False
-            )
-
-            result = {
-                "stock": selected_stock,
-                "current_price": round(current_price,2),
-                "future_price": round(future_price,2),
-                "profit_percent": round(profit_percent,2),
-                "decision": decision,
-                "color": decision_color,
-                "years": selected_future
+            result={
+                "stock":selected_stock,
+                "current_price":round(current_price,2),
+                "future_price":round(future_price,2),
+                "profit_percent":round(profit_percent,2),
+                "decision":decision,
+                "color":color,
+                "years":selected_future
             }
 
         except Exception as e:
 
-            result = {"error": str(e)}
+            result={"error":str(e)}
 
     return render_template(
         "index.html",
@@ -270,8 +251,8 @@ def index():
 # RUN
 # -----------------------------------
 
-if __name__ == "__main__":
+if __name__=="__main__":
 
-    port = int(os.environ.get("PORT",5000))
+    port=int(os.environ.get("PORT",5000))
 
-    app.run(host="0.0.0.0", port=port)
+    app.run(host="0.0.0.0",port=port)
