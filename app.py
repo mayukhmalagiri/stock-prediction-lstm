@@ -97,7 +97,9 @@ def index():
 
         try:
 
+            # -----------------------------
             # DATA SOURCE
+            # -----------------------------
 
             if selected_stock == "UPLOAD" and uploaded_file:
 
@@ -121,7 +123,9 @@ def index():
 
                     df = download_stock(selected_stock)
 
+            # -----------------------------
             # FIX MULTI INDEX
+            # -----------------------------
 
             if isinstance(df.columns, pd.MultiIndex):
 
@@ -172,7 +176,6 @@ def index():
 
                     break
 
-            # fallback: choose numeric column
             if price_column is None:
 
                 numeric_cols = df.select_dtypes(include=np.number).columns
@@ -205,7 +208,9 @@ def index():
 
             scaled_prices = scaler.fit_transform(prices)
 
+            # -----------------------------
             # LOAD MODEL
+            # -----------------------------
 
             if selected_stock in STOCK_MAP:
 
@@ -215,7 +220,9 @@ def index():
 
                 model = get_model("AAPL")
 
+            # -----------------------------
             # PREDICTION
+            # -----------------------------
 
             last_window = scaled_prices[-WINDOW_SIZE:]
 
@@ -233,7 +240,9 @@ def index():
 
             yearly_profit = profit_percent / years
 
+            # -----------------------------
             # INVESTMENT DECISION
+            # -----------------------------
 
             if yearly_profit >= 12:
 
@@ -253,11 +262,13 @@ def index():
 
                 color = "red"
 
-            # GRAPH
+            # -----------------------------
+            # GRAPH (TODAY AS CURRENT DATE)
+            # -----------------------------
 
-            last_date = df["Date"].iloc[-1]
+            today = pd.Timestamp.today().normalize()
 
-            future_dates = pd.bdate_range(start=last_date, periods=future_days + 1)
+            future_dates = pd.bdate_range(start=today, periods=future_days + 1)
 
             trace_current = go.Scatter(
                 x=[future_dates[0]],
@@ -281,10 +292,13 @@ def index():
 
             fig = go.Figure(data=[trace_current, trace_prediction])
 
+            # currency detection
+            currency = "₹" if ".NS" in selected_stock else "$"
+
             fig.update_layout(
                 title=f"{selected_stock} Price Prediction",
                 xaxis_title="Date",
-                yaxis_title="Price per Share(₹)",
+                yaxis_title=f"Price per Share ({currency})",
                 template="plotly_white"
             )
 
