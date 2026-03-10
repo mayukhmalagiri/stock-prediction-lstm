@@ -284,7 +284,7 @@ def index():
             fig.update_layout(
                 title=f"{selected_stock} Price Prediction",
                 xaxis_title="Date",
-                yaxis_title="Price ($)",
+                yaxis_title="Price per share ($)",
                 template="plotly_white"
             )
 
