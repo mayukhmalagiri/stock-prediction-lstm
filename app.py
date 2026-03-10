@@ -9,6 +9,9 @@ from sklearn.preprocessing import MinMaxScaler
 import plotly.graph_objs as go
 import plotly.offline as pyo
 
+import yfinance as yf
+
+
 app = Flask(__name__)
 
 CACHE_DIR = "cache"
@@ -33,15 +36,20 @@ MODEL_CACHE = {}
 
 
 def get_model(stock):
+
     if stock not in MODEL_CACHE:
+
         path = os.path.join(MODEL_DIR, f"{stock}.h5")
+
         MODEL_CACHE[stock] = load_model(path, compile=False)
+
     return MODEL_CACHE[stock]
 
 
 def predict_future(model, window, scaler, days):
 
     predictions = []
+
     current_window = window.copy()
 
     for _ in range(days):
@@ -75,11 +83,37 @@ def index():
         selected_past = request.form.get("past_range")
         selected_future = request.form.get("future_range")
 
+        manual_stock = request.form.get("manual_stock")
+        uploaded_file = request.files.get("stock_file")
+
         try:
 
-            path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
+            # -----------------------------------
+            # DATA SOURCE SELECTION
+            # -----------------------------------
 
-            df = pd.read_csv(path, skiprows=[1])
+            if selected_stock == "UPLOAD" and uploaded_file:
+
+                df = pd.read_csv(uploaded_file)
+
+            elif selected_stock == "MANUAL" and manual_stock:
+
+                df = yf.download(manual_stock, period=selected_past)
+
+                df.reset_index(inplace=True)
+
+                selected_stock = manual_stock
+
+            else:
+
+                path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
+
+                df = pd.read_csv(path, skiprows=[1])
+
+
+            # -----------------------------------
+            # DATA CLEANING
+            # -----------------------------------
 
             df["Date"] = pd.to_datetime(df["Date"])
             df["Close"] = pd.to_numeric(df["Close"])
@@ -89,9 +123,20 @@ def index():
             prices = df["Close"].values.reshape(-1, 1)
 
             scaler = MinMaxScaler()
+
             scaled_prices = scaler.fit_transform(prices)
 
-            model = get_model(selected_stock)
+
+            # -----------------------------------
+            # MODEL LOADING
+            # -----------------------------------
+
+            model = get_model(selected_stock) if selected_stock in STOCK_MAP else get_model("AAPL")
+
+
+            # -----------------------------------
+            # PREDICTION
+            # -----------------------------------
 
             last_window = scaled_prices[-WINDOW_SIZE:]
 
@@ -100,25 +145,41 @@ def index():
             preds = predict_future(model, last_window, scaler, future_days)
 
             future_price = preds[-1][0]
+
             current_price = prices[-1][0]
 
             profit_percent = ((future_price - current_price) / current_price) * 100
 
             years = int(selected_future[0])
+
             yearly_profit = profit_percent / years
 
-            if yearly_profit >= 12:
-                decision = "Long-Term Investment"
-                color = "green"
-            elif yearly_profit >= 4:
-                decision = "Moderate Investment"
-                color = "orange"
-            else:
-                decision = "Not Recommended"
-                color = "red"
 
             # -----------------------------------
-            # GRAPH (only markers)
+            # INVESTMENT DECISION
+            # -----------------------------------
+
+            if yearly_profit >= 12:
+
+                decision = "Long-Term Investment"
+
+                color = "green"
+
+            elif yearly_profit >= 4:
+
+                decision = "Moderate Investment"
+
+                color = "orange"
+
+            else:
+
+                decision = "Not Recommended"
+
+                color = "red"
+
+
+            # -----------------------------------
+            # GRAPH
             # -----------------------------------
 
             last_date = df["Date"].iloc[-1]
@@ -167,6 +228,7 @@ def index():
             }
 
         except Exception as e:
+
             result = {"error": str(e)}
 
     return render_template(

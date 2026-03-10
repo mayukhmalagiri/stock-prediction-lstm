@@ -35,7 +35,7 @@ label {
     margin-top: 20px;
 }
 
-select {
+select, input[type="text"], input[type="file"] {
     width: 100%;
     padding: 12px;
     margin-top: 8px;
@@ -84,6 +84,31 @@ button:hover {
 }
 
 </style>
+
+<script>
+
+function toggleUpload(){
+
+    const stockSelect = document.getElementById("stockSelect").value
+    const uploadSection = document.getElementById("uploadSection")
+    const manualTicker = document.getElementById("manualTicker")
+
+    if(stockSelect === "UPLOAD"){
+        uploadSection.style.display = "block"
+        manualTicker.style.display = "none"
+    }
+    else if(stockSelect === "MANUAL"){
+        uploadSection.style.display = "none"
+        manualTicker.style.display = "block"
+    }
+    else{
+        uploadSection.style.display = "none"
+        manualTicker.style.display = "none"
+    }
+}
+
+</script>
+
 </head>
 
 <body>
@@ -92,12 +117,13 @@ button:hover {
 
 <h1>📊 Stock Prediction</h1>
 
-<form method="POST" action="/">
+<form method="POST" action="/" enctype="multipart/form-data">
 
 <label>Select Stock</label>
-<select name="stock" required>
 
-<option value="">-- Select Stock --</option>
+<select name="stock" id="stockSelect" onchange="toggleUpload()" required>
+
+<option value="">-- Select Option --</option>
 
 {% for code, name in stocks.items() %}
 <option value="{{ code }}" {% if code == selected_stock %}selected{% endif %}>
@@ -105,28 +131,61 @@ button:hover {
 </option>
 {% endfor %}
 
+<option value="MANUAL">Search / Enter Stock Ticker</option>
+
+<option value="UPLOAD">Upload Your Own CSV</option>
+
 </select>
 
 
+<!-- MANUAL TICKER INPUT -->
+
+<div id="manualTicker" style="display:none;">
+
+<label>Enter Stock Ticker</label>
+
+<input type="text" name="manual_stock" placeholder="Example: AAPL, TSLA, RELIANCE.NS">
+
+</div>
+
+
+<!-- CSV UPLOAD -->
+
+<div id="uploadSection" style="display:none;">
+
+<label>Upload Stock CSV File</label>
+
+<input type="file" name="stock_file" accept=".csv">
+
+</div>
+
+
+
 <label>Past Historical Data Range</label>
+
 <select name="past_range" required>
 
 <option value="">-- Select Past Range --</option>
 
 <option value="6m" {% if selected_past == "6m" %}selected{% endif %}>Past 6 Months</option>
+
 <option value="1y" {% if selected_past == "1y" %}selected{% endif %}>Past 1 Year</option>
+
 <option value="3y" {% if selected_past == "3y" %}selected{% endif %}>Past 3 Years</option>
 
 </select>
 
 
 <label>Future Prediction Period</label>
+
 <select name="future_range" required>
 
 <option value="">-- Select Future Period --</option>
 
 <option value="1y" {% if selected_future == "1y" %}selected{% endif %}>After 1 Year</option>
+
 <option value="3y" {% if selected_future == "3y" %}selected{% endif %}>After 3 Years</option>
+
 <option value="5y" {% if selected_future == "5y" %}selected{% endif %}>After 5 Years</option>
 
 </select>
@@ -168,8 +227,6 @@ button:hover {
 
 {% endif %}
 
-
-<!-- INTERACTIVE GRAPH -->
 
 {% if graph_url %}
 
