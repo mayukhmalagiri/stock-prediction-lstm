@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
 <title>Stock Prediction</title>
 
@@ -35,7 +36,9 @@ label {
     margin-top: 20px;
 }
 
-select, input[type="text"], input[type="file"] {
+select,
+input[type="text"],
+input[type="file"] {
     width: 100%;
     padding: 12px;
     margin-top: 8px;
@@ -85,26 +88,32 @@ button:hover {
 
 </style>
 
+
 <script>
 
 function toggleUpload(){
 
-    const stockSelect = document.getElementById("stockSelect").value
-    const uploadSection = document.getElementById("uploadSection")
-    const manualTicker = document.getElementById("manualTicker")
+    const stockSelect = document.getElementById("stockSelect").value;
+    const uploadSection = document.getElementById("uploadSection");
+    const manualTicker = document.getElementById("manualTicker");
+
+    uploadSection.style.display = "none";
+    manualTicker.style.display = "none";
 
     if(stockSelect === "UPLOAD"){
-        uploadSection.style.display = "block"
-        manualTicker.style.display = "none"
+        uploadSection.style.display = "block";
     }
-    else if(stockSelect === "MANUAL"){
-        uploadSection.style.display = "none"
-        manualTicker.style.display = "block"
+
+    if(stockSelect === "MANUAL"){
+        manualTicker.style.display = "block";
     }
-    else{
-        uploadSection.style.display = "none"
-        manualTicker.style.display = "none"
-    }
+
+}
+
+/* Ensure correct UI state when page reloads */
+
+window.onload = function(){
+    toggleUpload();
 }
 
 </script>
@@ -123,7 +132,7 @@ function toggleUpload(){
 
 <select name="stock" id="stockSelect" onchange="toggleUpload()" required>
 
-<option value="">-- Select Option --</option>
+<option value="" disabled selected>-- Select Option --</option>
 
 {% for code, name in stocks.items() %}
 <option value="{{ code }}" {% if code == selected_stock %}selected{% endif %}>
@@ -131,20 +140,22 @@ function toggleUpload(){
 </option>
 {% endfor %}
 
-<option value="MANUAL">Search / Enter Stock Ticker</option>
-
-<option value="UPLOAD">Upload Your Own CSV</option>
+<option value="MANUAL">Enter Stock Ticker</option>
+<option value="UPLOAD">Upload CSV Dataset</option>
 
 </select>
 
 
-<!-- MANUAL TICKER INPUT -->
+<!-- MANUAL TICKER -->
 
 <div id="manualTicker" style="display:none;">
 
 <label>Enter Stock Ticker</label>
 
-<input type="text" name="manual_stock" placeholder="Example: AAPL, TSLA, RELIANCE.NS">
+<input
+type="text"
+name="manual_stock"
+placeholder="Example: AAPL, TSLA, NVDA, RELIANCE.NS">
 
 </div>
 
@@ -155,7 +166,10 @@ function toggleUpload(){
 
 <label>Upload Stock CSV File</label>
 
-<input type="file" name="stock_file" accept=".csv">
+<input
+type="file"
+name="stock_file"
+accept=".csv">
 
 </div>
 
@@ -165,13 +179,19 @@ function toggleUpload(){
 
 <select name="past_range" required>
 
-<option value="">-- Select Past Range --</option>
+<option value="" disabled selected>-- Select Past Range --</option>
 
-<option value="6m" {% if selected_past == "6m" %}selected{% endif %}>Past 6 Months</option>
+<option value="6m" {% if selected_past == "6m" %}selected{% endif %}>
+Past 6 Months
+</option>
 
-<option value="1y" {% if selected_past == "1y" %}selected{% endif %}>Past 1 Year</option>
+<option value="1y" {% if selected_past == "1y" %}selected{% endif %}>
+Past 1 Year
+</option>
 
-<option value="3y" {% if selected_past == "3y" %}selected{% endif %}>Past 3 Years</option>
+<option value="3y" {% if selected_past == "3y" %}selected{% endif %}>
+Past 3 Years
+</option>
 
 </select>
 
@@ -180,19 +200,26 @@ function toggleUpload(){
 
 <select name="future_range" required>
 
-<option value="">-- Select Future Period --</option>
+<option value="" disabled selected>-- Select Future Period --</option>
 
-<option value="1y" {% if selected_future == "1y" %}selected{% endif %}>After 1 Year</option>
+<option value="1y" {% if selected_future == "1y" %}selected{% endif %}>
+After 1 Year
+</option>
 
-<option value="3y" {% if selected_future == "3y" %}selected{% endif %}>After 3 Years</option>
+<option value="3y" {% if selected_future == "3y" %}selected{% endif %}>
+After 3 Years
+</option>
 
-<option value="5y" {% if selected_future == "5y" %}selected{% endif %}>After 5 Years</option>
+<option value="5y" {% if selected_future == "5y" %}selected{% endif %}>
+After 5 Years
+</option>
 
 </select>
 
 <button type="submit">Predict</button>
 
 </form>
+
 
 
 {% if result %}
@@ -217,7 +244,9 @@ function toggleUpload(){
 
 <p><b>Decision:</b>
 
-<span class="{{ result.color }}">{{ result.decision }}</span>
+<span class="{{ result.color }}">
+{{ result.decision }}
+</span>
 
 </p>
 
@@ -226,6 +255,7 @@ function toggleUpload(){
 {% endif %}
 
 {% endif %}
+
 
 
 {% if graph_url %}
