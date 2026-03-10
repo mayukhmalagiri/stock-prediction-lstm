@@ -34,32 +34,46 @@ MODEL_CACHE = {}
 
 
 def get_model(stock):
+
     if stock not in MODEL_CACHE:
+
         path = os.path.join(MODEL_DIR, f"{stock}.h5")
+
         MODEL_CACHE[stock] = load_model(path, compile=False)
+
     return MODEL_CACHE[stock]
 
 
 def predict_future(model, window, scaler, days):
+
     predictions = []
+
     current_window = window.copy()
 
     for _ in range(days):
+
         X = current_window.reshape(1, WINDOW_SIZE, 1)
+
         pred = model.predict(X, verbose=0)[0][0]
+
         predictions.append(pred)
+
         current_window = np.vstack((current_window[1:], [[pred]]))
 
     predictions = np.array(predictions).reshape(-1, 1)
+
     return scaler.inverse_transform(predictions)
 
 
 def download_stock(ticker):
-    """Download enough history for LSTM"""
+
     df = yf.download(ticker, period="5y")
+
     if df.empty:
         raise Exception(f"No data returned for ticker: {ticker}")
+
     df.reset_index(inplace=True)
+
     return df
 
 
@@ -85,62 +99,116 @@ def index():
         try:
 
             # -----------------------------
-            # DATA SOURCE SELECTION
+            # DATA SOURCE
             # -----------------------------
 
             if selected_stock == "UPLOAD" and uploaded_file:
+
                 df = pd.read_csv(uploaded_file)
 
             elif selected_stock == "MANUAL" and manual_stock:
+
                 df = download_stock(manual_stock)
+
                 selected_stock = manual_stock
 
             else:
+
                 path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
 
                 if os.path.exists(path):
+
                     df = pd.read_csv(path, skiprows=[1])
+
                 else:
-                    # fallback to Yahoo if cache missing
+
                     df = download_stock(selected_stock)
 
             # -----------------------------
-            # FIX YFINANCE MULTI-INDEX
+            # FIX MULTI INDEX (YFINANCE)
             # -----------------------------
 
             if isinstance(df.columns, pd.MultiIndex):
+
                 df.columns = df.columns.get_level_values(0)
 
-            if "Close" not in df.columns:
-                raise Exception("Close column not found in dataset")
+            # -----------------------------
+            # STANDARDIZE COLUMN NAMES
+            # -----------------------------
+
+            df.columns = [c.strip().lower() for c in df.columns]
+
+            # -----------------------------
+            # AUTO DETECT DATE COLUMN
+            # -----------------------------
+
+            date_candidates = ["date", "timestamp", "time"]
+
+            date_column = None
+
+            for c in date_candidates:
+                if c in df.columns:
+                    date_column = c
+                    break
+
+            if date_column is None:
+                raise Exception("CSV must contain a Date column")
+
+            df["Date"] = pd.to_datetime(df[date_column], errors="coerce")
+
+            # -----------------------------
+            # AUTO DETECT CLOSE COLUMN
+            # -----------------------------
+
+            close_candidates = [
+                "close",
+                "adj close",
+                "closing price",
+                "close price"
+            ]
+
+            close_column = None
+
+            for c in close_candidates:
+                if c in df.columns:
+                    close_column = c
+                    break
+
+            if close_column is None:
+                raise Exception("CSV must contain a Close column")
+
+            df["Close"] = pd.to_numeric(df[close_column], errors="coerce")
 
             # -----------------------------
             # CLEAN DATA
             # -----------------------------
 
-            df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-            df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
-
             df = df.dropna(subset=["Date", "Close"])
+
             df = df.sort_values("Date").reset_index(drop=True)
 
             prices = df["Close"].values.reshape(-1, 1)
 
             if len(prices) < WINDOW_SIZE:
+
                 raise Exception(
-                    f"Not enough historical data. Need at least {WINDOW_SIZE} rows but got {len(prices)}."
+                    f"Not enough historical data. Need at least {WINDOW_SIZE} rows."
                 )
 
             scaler = MinMaxScaler()
+
             scaled_prices = scaler.fit_transform(prices)
 
             # -----------------------------
-            # MODEL LOADING
+            # LOAD MODEL
             # -----------------------------
 
             if selected_stock in STOCK_MAP:
+
                 model = get_model(selected_stock)
+
             else:
+
                 model = get_model("AAPL")
 
             # -----------------------------
@@ -148,16 +216,19 @@ def index():
             # -----------------------------
 
             last_window = scaled_prices[-WINDOW_SIZE:]
+
             future_days = FUTURE_DAYS_MAP[selected_future]
 
             preds = predict_future(model, last_window, scaler, future_days)
 
             future_price = preds[-1][0]
+
             current_price = prices[-1][0]
 
             profit_percent = ((future_price - current_price) / current_price) * 100
 
             years = int(selected_future[0])
+
             yearly_profit = profit_percent / years
 
             # -----------------------------
@@ -165,13 +236,21 @@ def index():
             # -----------------------------
 
             if yearly_profit >= 12:
+
                 decision = "Long-Term Investment"
+
                 color = "green"
+
             elif yearly_profit >= 4:
+
                 decision = "Moderate Investment"
+
                 color = "orange"
+
             else:
+
                 decision = "Not Recommended"
+
                 color = "red"
 
             # -----------------------------
@@ -179,6 +258,7 @@ def index():
             # -----------------------------
 
             last_date = df["Date"].iloc[-1]
+
             future_dates = pd.bdate_range(start=last_date, periods=future_days + 1)
 
             trace_current = go.Scatter(
@@ -223,6 +303,7 @@ def index():
             }
 
         except Exception as e:
+
             result = {"error": str(e)}
 
     return render_template(
