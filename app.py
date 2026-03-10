@@ -125,7 +125,7 @@ def index():
                     df = download_stock(selected_stock)
 
             # -----------------------------
-            # FIX MULTI INDEX (YFINANCE)
+            # FIX MULTI-INDEX (YFINANCE)
             # -----------------------------
 
             if isinstance(df.columns, pd.MultiIndex):
@@ -142,19 +142,28 @@ def index():
             # AUTO DETECT DATE COLUMN
             # -----------------------------
 
-            date_candidates = ["date", "timestamp", "time"]
-
             date_column = None
 
-            for c in date_candidates:
-                if c in df.columns:
-                    date_column = c
-                    break
+            for col in df.columns:
+
+                try:
+
+                    parsed = pd.to_datetime(df[col], errors="coerce")
+
+                    if parsed.notna().sum() > len(df) * 0.5:
+
+                        date_column = col
+
+                        df["Date"] = parsed
+
+                        break
+
+                except:
+                    pass
 
             if date_column is None:
-                raise Exception("CSV must contain a Date column")
 
-            df["Date"] = pd.to_datetime(df[date_column], errors="coerce")
+                raise Exception("CSV must contain a column with date values")
 
             # -----------------------------
             # AUTO DETECT CLOSE COLUMN
@@ -170,11 +179,15 @@ def index():
             close_column = None
 
             for c in close_candidates:
+
                 if c in df.columns:
+
                     close_column = c
+
                     break
 
             if close_column is None:
+
                 raise Exception("CSV must contain a Close column")
 
             df["Close"] = pd.to_numeric(df[close_column], errors="coerce")
