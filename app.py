@@ -42,11 +42,14 @@ def get_model(stock):
 
 
 def predict_future(model, window, scaler, days):
+
     predictions = []
     current_window = window.copy()
 
     for _ in range(days):
+
         X = current_window.reshape(1, WINDOW_SIZE, 1)
+
         pred = model.predict(X, verbose=0)[0][0]
 
         predictions.append(pred)
@@ -79,33 +82,46 @@ def index():
 
         try:
 
-            # -----------------------------
             # DATA SOURCE SELECTION
-            # -----------------------------
 
             if selected_stock == "UPLOAD" and uploaded_file:
+
                 df = pd.read_csv(uploaded_file)
 
             elif selected_stock == "MANUAL" and manual_stock:
+
                 df = yf.download(manual_stock, period=selected_past)
                 df.reset_index(inplace=True)
                 selected_stock = manual_stock
 
             else:
+
                 path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
                 df = pd.read_csv(path, skiprows=[1])
 
-            # -----------------------------
-            # DATA CLEANING
-            # -----------------------------
+            # FIX MULTI INDEX FROM YFINANCE
+
+            if isinstance(df.columns, pd.MultiIndex):
+                df.columns = df.columns.get_level_values(0)
+
+            # VALIDATE DATA
+
+            if "Close" not in df.columns:
+                raise Exception("Close column not found in dataset")
+
+            # CLEAN DATA
 
             df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
-            df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
+
+            close_series = pd.Series(df["Close"])
+            close_series = pd.to_numeric(close_series, errors="coerce")
+
+            df["Close"] = close_series
 
             df = df.dropna(subset=["Date", "Close"])
             df = df.sort_values("Date").reset_index(drop=True)
 
-            prices = df["Close"].to_numpy().reshape(-1, 1)
+            prices = df["Close"].values.reshape(-1, 1)
 
             if len(prices) < WINDOW_SIZE:
                 raise Exception("Not enough historical data for prediction")
@@ -113,18 +129,14 @@ def index():
             scaler = MinMaxScaler()
             scaled_prices = scaler.fit_transform(prices)
 
-            # -----------------------------
-            # MODEL LOADING
-            # -----------------------------
+            # LOAD MODEL
 
             if selected_stock in STOCK_MAP:
                 model = get_model(selected_stock)
             else:
                 model = get_model("AAPL")
 
-            # -----------------------------
             # PREDICTION
-            # -----------------------------
 
             last_window = scaled_prices[-WINDOW_SIZE:]
 
@@ -140,9 +152,7 @@ def index():
             years = int(selected_future[0])
             yearly_profit = profit_percent / years
 
-            # -----------------------------
             # INVESTMENT DECISION
-            # -----------------------------
 
             if yearly_profit >= 12:
                 decision = "Long-Term Investment"
@@ -156,9 +166,7 @@ def index():
                 decision = "Not Recommended"
                 color = "red"
 
-            # -----------------------------
             # GRAPH
-            # -----------------------------
 
             last_date = df["Date"].iloc[-1]
 
