@@ -8,9 +8,7 @@ from sklearn.preprocessing import MinMaxScaler
 
 import plotly.graph_objs as go
 import plotly.offline as pyo
-
 import yfinance as yf
-
 
 app = Flask(__name__)
 
@@ -36,26 +34,19 @@ MODEL_CACHE = {}
 
 
 def get_model(stock):
-
     if stock not in MODEL_CACHE:
-
         path = os.path.join(MODEL_DIR, f"{stock}.h5")
-
         MODEL_CACHE[stock] = load_model(path, compile=False)
 
     return MODEL_CACHE[stock]
 
 
 def predict_future(model, window, scaler, days):
-
     predictions = []
-
     current_window = window.copy()
 
     for _ in range(days):
-
         X = current_window.reshape(1, WINDOW_SIZE, 1)
-
         pred = model.predict(X, verbose=0)[0][0]
 
         predictions.append(pred)
@@ -88,55 +79,52 @@ def index():
 
         try:
 
-            # -----------------------------------
+            # -----------------------------
             # DATA SOURCE SELECTION
-            # -----------------------------------
+            # -----------------------------
 
             if selected_stock == "UPLOAD" and uploaded_file:
-
                 df = pd.read_csv(uploaded_file)
 
             elif selected_stock == "MANUAL" and manual_stock:
-
                 df = yf.download(manual_stock, period=selected_past)
-
                 df.reset_index(inplace=True)
-
                 selected_stock = manual_stock
 
             else:
-
                 path = os.path.join(CACHE_DIR, f"{selected_stock}.csv")
-
                 df = pd.read_csv(path, skiprows=[1])
 
-
-            # -----------------------------------
+            # -----------------------------
             # DATA CLEANING
-            # -----------------------------------
+            # -----------------------------
 
-            df["Date"] = pd.to_datetime(df["Date"])
-            df["Close"] = pd.to_numeric(df["Close"])
+            df["Date"] = pd.to_datetime(df["Date"], errors="coerce")
+            df["Close"] = pd.to_numeric(df["Close"], errors="coerce")
 
+            df = df.dropna(subset=["Date", "Close"])
             df = df.sort_values("Date").reset_index(drop=True)
 
-            prices = df["Close"].values.reshape(-1, 1)
+            prices = df["Close"].to_numpy().reshape(-1, 1)
+
+            if len(prices) < WINDOW_SIZE:
+                raise Exception("Not enough historical data for prediction")
 
             scaler = MinMaxScaler()
-
             scaled_prices = scaler.fit_transform(prices)
 
-
-            # -----------------------------------
+            # -----------------------------
             # MODEL LOADING
-            # -----------------------------------
+            # -----------------------------
 
-            model = get_model(selected_stock) if selected_stock in STOCK_MAP else get_model("AAPL")
+            if selected_stock in STOCK_MAP:
+                model = get_model(selected_stock)
+            else:
+                model = get_model("AAPL")
 
-
-            # -----------------------------------
+            # -----------------------------
             # PREDICTION
-            # -----------------------------------
+            # -----------------------------
 
             last_window = scaled_prices[-WINDOW_SIZE:]
 
@@ -145,42 +133,32 @@ def index():
             preds = predict_future(model, last_window, scaler, future_days)
 
             future_price = preds[-1][0]
-
             current_price = prices[-1][0]
 
             profit_percent = ((future_price - current_price) / current_price) * 100
 
             years = int(selected_future[0])
-
             yearly_profit = profit_percent / years
 
-
-            # -----------------------------------
+            # -----------------------------
             # INVESTMENT DECISION
-            # -----------------------------------
+            # -----------------------------
 
             if yearly_profit >= 12:
-
                 decision = "Long-Term Investment"
-
                 color = "green"
 
             elif yearly_profit >= 4:
-
                 decision = "Moderate Investment"
-
                 color = "orange"
 
             else:
-
                 decision = "Not Recommended"
-
                 color = "red"
 
-
-            # -----------------------------------
+            # -----------------------------
             # GRAPH
-            # -----------------------------------
+            # -----------------------------
 
             last_date = df["Date"].iloc[-1]
 
@@ -228,7 +206,6 @@ def index():
             }
 
         except Exception as e:
-
             result = {"error": str(e)}
 
     return render_template(
