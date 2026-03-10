@@ -47,7 +47,6 @@ def get_model(stock):
 def predict_future(model, window, scaler, days):
 
     predictions = []
-
     current_window = window.copy()
 
     for _ in range(days):
@@ -98,9 +97,7 @@ def index():
 
         try:
 
-            # -----------------------------
             # DATA SOURCE
-            # -----------------------------
 
             if selected_stock == "UPLOAD" and uploaded_file:
 
@@ -124,17 +121,11 @@ def index():
 
                     df = download_stock(selected_stock)
 
-            # -----------------------------
-            # FIX MULTI-INDEX (YFINANCE)
-            # -----------------------------
+            # FIX MULTI INDEX
 
             if isinstance(df.columns, pd.MultiIndex):
 
                 df.columns = df.columns.get_level_values(0)
-
-            # -----------------------------
-            # STANDARDIZE COLUMN NAMES
-            # -----------------------------
 
             df.columns = [c.strip().lower() for c in df.columns]
 
@@ -146,51 +137,53 @@ def index():
 
             for col in df.columns:
 
-                try:
+                parsed = pd.to_datetime(df[col], errors="coerce")
 
-                    parsed = pd.to_datetime(df[col], errors="coerce")
+                if parsed.notna().sum() > len(df) * 0.5:
 
-                    if parsed.notna().sum() > len(df) * 0.5:
+                    date_column = col
 
-                        date_column = col
+                    df["Date"] = parsed
 
-                        df["Date"] = parsed
-
-                        break
-
-                except:
-                    pass
+                    break
 
             if date_column is None:
 
                 raise Exception("CSV must contain a column with date values")
 
             # -----------------------------
-            # AUTO DETECT CLOSE COLUMN
+            # AUTO DETECT PRICE COLUMN
             # -----------------------------
 
-            close_candidates = [
+            price_candidates = [
                 "close",
                 "adj close",
                 "closing price",
                 "close price"
             ]
 
-            close_column = None
+            price_column = None
 
-            for c in close_candidates:
+            for c in price_candidates:
 
                 if c in df.columns:
 
-                    close_column = c
+                    price_column = c
 
                     break
 
-            if close_column is None:
+            # fallback: choose numeric column
+            if price_column is None:
 
-                raise Exception("CSV must contain a Close column")
+                numeric_cols = df.select_dtypes(include=np.number).columns
 
-            df["Close"] = pd.to_numeric(df[close_column], errors="coerce")
+                if len(numeric_cols) == 0:
+
+                    raise Exception("CSV must contain a numeric price column")
+
+                price_column = numeric_cols[-1]
+
+            df["Close"] = pd.to_numeric(df[price_column], errors="coerce")
 
             # -----------------------------
             # CLEAN DATA
@@ -212,9 +205,7 @@ def index():
 
             scaled_prices = scaler.fit_transform(prices)
 
-            # -----------------------------
             # LOAD MODEL
-            # -----------------------------
 
             if selected_stock in STOCK_MAP:
 
@@ -224,9 +215,7 @@ def index():
 
                 model = get_model("AAPL")
 
-            # -----------------------------
             # PREDICTION
-            # -----------------------------
 
             last_window = scaled_prices[-WINDOW_SIZE:]
 
@@ -244,9 +233,7 @@ def index():
 
             yearly_profit = profit_percent / years
 
-            # -----------------------------
             # INVESTMENT DECISION
-            # -----------------------------
 
             if yearly_profit >= 12:
 
@@ -266,9 +253,7 @@ def index():
 
                 color = "red"
 
-            # -----------------------------
             # GRAPH
-            # -----------------------------
 
             last_date = df["Date"].iloc[-1]
 
