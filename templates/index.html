@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -45,6 +46,7 @@ input[type="file"] {
     border-radius: 8px;
     border: 1px solid #ccc;
     font-size: 15px;
+    box-sizing: border-box;
 }
 
 button {
@@ -70,9 +72,20 @@ button:hover {
     background: #f4f6ff;
 }
 
-.green { color: green; font-weight: bold; }
-.orange { color: orange; font-weight: bold; }
-.red { color: red; font-weight: bold; }
+.green {
+    color: green;
+    font-weight: bold;
+}
+
+.orange {
+    color: orange;
+    font-weight: bold;
+}
+
+.red {
+    color: red;
+    font-weight: bold;
+}
 
 .error {
     background: #ffe5e5;
@@ -82,39 +95,52 @@ button:hover {
     margin-top: 20px;
 }
 
-.graph-container{
-    margin-top:30px;
+.graph-container {
+    margin-top: 30px;
+}
+
+.help-text {
+    font-size: 13px;
+    color: #666;
+    margin-top: 5px;
 }
 
 </style>
 
-
 <script>
 
-function toggleUpload(){
+function toggleUpload() {
 
     const stockSelect = document.getElementById("stockSelect").value;
-    const uploadSection = document.getElementById("uploadSection");
-    const manualTicker = document.getElementById("manualTicker");
+
+    const uploadSection =
+        document.getElementById("uploadSection");
+
+    const manualTicker =
+        document.getElementById("manualTicker");
 
     uploadSection.style.display = "none";
     manualTicker.style.display = "none";
 
-    if(stockSelect === "UPLOAD"){
+    if (stockSelect === "UPLOAD") {
+
         uploadSection.style.display = "block";
+
     }
 
-    if(stockSelect === "MANUAL"){
+    if (stockSelect === "MANUAL") {
+
         manualTicker.style.display = "block";
+
     }
 
 }
 
-/* Ensure correct UI state when page reloads */
+window.onload = function() {
 
-window.onload = function(){
     toggleUpload();
-}
+
+};
 
 </script>
 
@@ -126,22 +152,49 @@ window.onload = function(){
 
 <h1>📊 Stock Prediction</h1>
 
-<form method="POST" action="/" enctype="multipart/form-data">
+<form
+method="POST"
+action="/"
+enctype="multipart/form-data">
 
 <label>Select Stock</label>
 
-<select name="stock" id="stockSelect" onchange="toggleUpload()" required>
+<select
+name="stock"
+id="stockSelect"
+onchange="toggleUpload()"
+required>
 
-<option value="" disabled selected>-- Select Option --</option>
+<option value="" disabled>
+-- Select Option --
+</option>
 
 {% for code, name in stocks.items() %}
-<option value="{{ code }}" {% if code == selected_stock %}selected{% endif %}>
+
+<option
+value="{{ code }}"
+{% if code == selected_stock %}
+selected
+{% endif %}>
+
 {{ name }} ({{ code }})
+
 </option>
+
 {% endfor %}
 
-<option value="MANUAL">Enter Stock Ticker</option>
-<option value="UPLOAD">Upload CSV Dataset</option>
+<option
+value="MANUAL"
+{% if selected_stock not in stocks and selected_stock %}
+selected
+{% endif %}>
+Enter Stock Ticker
+</option>
+
+<option
+value="UPLOAD">
+Upload CSV Dataset
+</option>
 
 </select>
 
@@ -155,7 +208,7 @@ window.onload = function(){
 <input
 type="text"
 name="manual_stock"
-placeholder="Example: AAPL, TSLA, NVDA, RELIANCE.NS">
+placeholder="Examples: AAPL, TSLA, NVDA, RELIANCE.NS">
 
 </div>
 
@@ -174,52 +227,45 @@ accept=".csv">
 </div>
 
 
+<!-- DYNAMIC HISTORICAL RANGE -->
 
 <label>Past Historical Data Range</label>
 
-<select name="past_range" required>
+<input
+type="text"
+name="past_range"
+placeholder="Examples: 6 months, 18 months, 3 years"
+required
+value="{{ selected_past }}">
 
-<option value="" disabled selected>-- Select Past Range --</option>
+<div class="help-text">
+Examples: 6 months, 12 months, 2 years, 5 years
+</div>
 
-<option value="6m" {% if selected_past == "6m" %}selected{% endif %}>
-Past 6 Months
-</option>
 
-<option value="1y" {% if selected_past == "1y" %}selected{% endif %}>
-Past 1 Year
-</option>
-
-<option value="3y" {% if selected_past == "3y" %}selected{% endif %}>
-Past 3 Years
-</option>
-
-</select>
-
+<!-- DYNAMIC FUTURE RANGE -->
 
 <label>Future Prediction Period</label>
 
-<select name="future_range" required>
+<input
+type="text"
+name="future_range"
+placeholder="Examples: 6 months, 2 years, 5 years"
+required
+value="{{ selected_future }}">
 
-<option value="" disabled selected>-- Select Future Period --</option>
+<div class="help-text">
+Examples: 3 months, 1 year, 2 years, 4.5 years
+</div>
 
-<option value="1y" {% if selected_future == "1y" %}selected{% endif %}>
-After 1 Year
-</option>
 
-<option value="3y" {% if selected_future == "3y" %}selected{% endif %}>
-After 3 Years
-</option>
+<button type="submit">
 
-<option value="5y" {% if selected_future == "5y" %}selected{% endif %}>
-After 5 Years
-</option>
+Predict
 
-</select>
-
-<button type="submit">Predict</button>
+</button>
 
 </form>
-
 
 
 {% if result %}
@@ -227,25 +273,43 @@ After 5 Years
 {% if result.error %}
 
 <div class="error">
+
 {{ result.error }}
+
 </div>
 
 {% else %}
 
 <div class="result">
 
-<p><b>Stock:</b> {{ result.stock }}</p>
+<p>
+<b>Stock:</b>
+{{ result.stock }}
+</p>
 
-<p><b>Current Price:</b> {{ result.current_price }}</p>
+<p>
+<b>Current Price:</b>
+{{ result.current_price }}
+</p>
 
-<p><b>Predicted Price after {{ result.years }}:</b> {{ result.future_price }}</p>
+<p>
+<b>Predicted Price after {{ result.years }}:</b>
+{{ result.future_price }}
+</p>
 
-<p><b>Expected Profit (%):</b> {{ result.profit_percent }}</p>
+<p>
+<b>Expected Profit (%):</b>
+{{ result.profit_percent }}
+</p>
 
-<p><b>Decision:</b>
+<p>
+
+<b>Decision:</b>
 
 <span class="{{ result.color }}">
+
 {{ result.decision }}
+
 </span>
 
 </p>
@@ -255,7 +319,6 @@ After 5 Years
 {% endif %}
 
 {% endif %}
-
 
 
 {% if graph_url %}
