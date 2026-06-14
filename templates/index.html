@@ -1,146 +1,563 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
 
 <meta charset="UTF-8">
-<title>Stock Prediction</title>
+<meta name="viewport"
+content="width=device-width,
+initial-scale=1.0">
+
+<title>
+AI Stock Predictor
+</title>
 
 <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
 <style>
 
-body {
-    margin: 0;
-    font-family: "Segoe UI", sans-serif;
-    background: linear-gradient(120deg, #6a74ff, #7e57c2);
-    min-height: 100vh;
+*{
+    margin:0;
+    padding:0;
+    box-sizing:border-box;
 }
 
-.container {
-    width: 800px;
-    margin: 60px auto;
-    background: #fdfdff;
-    padding: 35px;
-    border-radius: 16px;
-    box-shadow: 0 20px 40px rgba(0,0,0,0.15);
+body{
+
+    font-family:
+    'Segoe UI',
+    sans-serif;
+
+    min-height:100vh;
+
+    background:
+    linear-gradient(
+        135deg,
+        #0f172a,
+        #1e3a8a,
+        #312e81
+    );
+
+    background-size:
+    400% 400%;
+
+    animation:
+    gradientMove
+    18s ease infinite;
+
+    padding:
+    40px 20px;
 }
 
-h1 {
-    text-align: center;
-    margin-bottom: 30px;
+@keyframes gradientMove{
+
+    0%{
+        background-position:
+        0% 50%;
+    }
+
+    50%{
+        background-position:
+        100% 50%;
+    }
+
+    100%{
+        background-position:
+        0% 50%;
+    }
 }
 
-label {
-    font-weight: 600;
-    display: block;
-    margin-top: 20px;
+.container{
+
+    max-width:
+    1100px;
+
+    margin:auto;
+
+    background:
+    rgba(
+        255,
+        255,
+        255,
+        0.10
+    );
+
+    backdrop-filter:
+    blur(20px);
+
+    border:
+    1px solid rgba(
+        255,
+        255,
+        255,
+        0.15
+    );
+
+    border-radius:
+    28px;
+
+    padding:
+    40px;
+
+    box-shadow:
+    0 20px 60px
+    rgba(
+        0,
+        0,
+        0,
+        .35
+    );
+}
+
+.market-banner{
+
+    text-align:center;
+
+    color:white;
+
+    background:
+    rgba(
+        37,
+        99,
+        235,
+        .25
+    );
+
+    padding:14px;
+
+    border-radius:14px;
+
+    font-weight:600;
+
+    letter-spacing:
+    1px;
+
+    margin-bottom:30px;
+}
+
+.header{
+
+    text-align:center;
+
+    margin-bottom:40px;
+}
+
+.header h1{
+
+    color:white;
+
+    font-size:48px;
+
+    font-weight:700;
+
+    margin-bottom:12px;
+}
+
+.header-line{
+
+    width:120px;
+
+    height:4px;
+
+    margin:
+    15px auto;
+
+    border-radius:
+    20px;
+
+    background:
+    linear-gradient(
+        90deg,
+        #06b6d4,
+        #2563eb
+    );
+}
+
+.header p{
+
+    color:#dbeafe;
+
+    font-size:16px;
+
+    max-width:700px;
+
+    margin:auto;
+
+    line-height:1.8;
+}
+
+label{
+
+    display:block;
+
+    color:white;
+
+    font-weight:600;
+
+    margin-top:22px;
+
+    margin-bottom:8px;
 }
 
 select,
 input[type="text"],
-input[type="file"] {
-    width: 100%;
-    padding: 12px;
-    margin-top: 8px;
-    border-radius: 8px;
-    border: 1px solid #ccc;
-    font-size: 15px;
-    box-sizing: border-box;
+input[type="file"]{
+
+    width:100%;
+
+    border:none;
+
+    outline:none;
+
+    border-radius:14px;
+
+    padding:
+    14px 16px;
+
+    font-size:15px;
+
+    background:white;
+
+    transition:.3s;
 }
 
-button {
-    width: 100%;
-    margin-top: 30px;
-    padding: 14px;
-    font-size: 16px;
-    background: #6a74ff;
-    color: white;
-    border: none;
-    border-radius: 10px;
-    cursor: pointer;
+select:focus,
+input:focus{
+
+    transform:
+    translateY(-2px);
+
+    box-shadow:
+    0 0 0 4px
+    rgba(
+        255,
+        255,
+        255,
+        .25
+    );
 }
 
-button:hover {
-    background: #5a63e0;
+.help-text{
+
+    color:#dbeafe;
+
+    font-size:13px;
+
+    margin-top:6px;
+}
+.predict-btn{
+
+    width:100%;
+
+    margin-top:32px;
+
+    border:none;
+
+    border-radius:16px;
+
+    padding:16px;
+
+    font-size:17px;
+
+    font-weight:700;
+
+    color:white;
+
+    cursor:pointer;
+
+    background:
+    linear-gradient(
+        90deg,
+        #06b6d4,
+        #2563eb
+    );
+
+    transition:.3s;
 }
 
-.result {
-    margin-top: 35px;
-    padding: 20px;
-    border-radius: 12px;
-    background: #f4f6ff;
+.predict-btn:hover{
+
+    transform:
+    translateY(-3px);
+
+    box-shadow:
+    0 12px 25px
+    rgba(
+        37,
+        99,
+        235,
+        .4
+    );
 }
 
-.green {
-    color: green;
-    font-weight: bold;
+.predict-btn:disabled{
+
+    opacity:.8;
+
+    cursor:not-allowed;
 }
 
-.orange {
-    color: orange;
-    font-weight: bold;
+.dashboard{
+
+    display:grid;
+
+    grid-template-columns:
+    repeat(
+        auto-fit,
+        minmax(
+            220px,
+            1fr
+        )
+    );
+
+    gap:20px;
+
+    margin-top:35px;
 }
 
-.red {
-    color: red;
-    font-weight: bold;
+.metric-card{
+
+    background:white;
+
+    border-radius:18px;
+
+    padding:24px;
+
+    text-align:center;
+
+    border-top:
+    4px solid #2563eb;
+
+    box-shadow:
+    0 10px 25px
+    rgba(
+        0,
+        0,
+        0,
+        .12
+    );
+
+    transition:.3s;
 }
 
-.error {
-    background: #ffe5e5;
-    color: red;
-    padding: 12px;
-    border-radius: 8px;
-    margin-top: 20px;
+.metric-card:hover{
+
+    transform:
+    translateY(-5px);
 }
 
-.graph-container {
-    margin-top: 30px;
+.metric-card h4{
+
+    color:#64748b;
+
+    font-size:14px;
+
+    margin-bottom:12px;
+
+    font-weight:600;
 }
 
-.help-text {
-    font-size: 13px;
-    color: #666;
-    margin-top: 5px;
+.metric-card h2{
+
+    color:#0f172a;
+
+    font-size:24px;
+
+    line-height:1.3;
+
+    font-weight:700;
+}
+
+.green{
+
+    color:#16a34a;
+}
+
+.orange{
+
+    color:#f59e0b;
+}
+
+.red{
+
+    color:#dc2626;
+}
+
+.profit-meter{
+
+    height:22px;
+
+    background:#e5e7eb;
+
+    border-radius:30px;
+
+    overflow:hidden;
+
+    margin-top:25px;
+}
+
+.profit-fill{
+
+    height:100%;
+
+    background:
+    linear-gradient(
+        90deg,
+        #10b981,
+        #22c55e
+    );
+
+    transition:
+    width 2s ease;
+}
+
+.summary-card{
+
+    margin-top:25px;
+
+    background:white;
+
+    border-radius:20px;
+
+    padding:28px;
+
+    color:#1e293b;
+
+    line-height:1.8;
+
+    box-shadow:
+    0 10px 25px
+    rgba(
+        0,
+        0,
+        0,
+        .12
+    );
+}
+
+.summary-card h3{
+
+    margin-bottom:15px;
+
+    color:#0f172a;
+}
+
+.graph-container{
+
+    margin-top:35px;
+
+    background:white;
+
+    border-radius:20px;
+
+    padding:25px;
+
+    box-shadow:
+    0 10px 25px
+    rgba(
+        0,
+        0,
+        0,
+        .15
+    );
+}
+
+.graph-container h3{
+
+    color:#0f172a;
+
+    margin-bottom:15px;
+}
+
+.error{
+
+    margin-top:25px;
+
+    background:#fee2e2;
+
+    color:#b91c1c;
+
+    padding:16px;
+
+    border-radius:14px;
+
+    font-weight:600;
+}
+@media(max-width:768px){
+
+    .container{
+
+        padding:25px;
+    }
+
+    .header h1{
+
+        font-size:34px;
+    }
+
+    .dashboard{
+
+        grid-template-columns:1fr;
+    }
 }
 
 </style>
 
 <script>
 
-function toggleUpload() {
+function toggleUpload(){
 
-    const stockSelect = document.getElementById("stockSelect").value;
+    const stockSelect =
+    document.getElementById(
+        "stockSelect"
+    ).value;
 
     const uploadSection =
-        document.getElementById("uploadSection");
+    document.getElementById(
+        "uploadSection"
+    );
 
     const manualTicker =
-        document.getElementById("manualTicker");
+    document.getElementById(
+        "manualTicker"
+    );
 
-    uploadSection.style.display = "none";
-    manualTicker.style.display = "none";
+    uploadSection.style.display =
+    "none";
 
-    if (stockSelect === "UPLOAD") {
+    manualTicker.style.display =
+    "none";
 
-        uploadSection.style.display = "block";
+    if(stockSelect === "UPLOAD"){
 
+        uploadSection.style.display =
+        "block";
     }
 
-    if (stockSelect === "MANUAL") {
+    if(stockSelect === "MANUAL"){
 
-        manualTicker.style.display = "block";
-
+        manualTicker.style.display =
+        "block";
     }
-
 }
 
-window.onload = function() {
+window.onload = function(){
 
     toggleUpload();
+}
 
-};
+function showLoading(){
+
+    const btn =
+    document.getElementById(
+        "predictBtn"
+    );
+
+    btn.innerHTML =
+    "Analyzing Stock...";
+
+    btn.disabled = true;
+}
 
 </script>
 
@@ -150,14 +567,40 @@ window.onload = function() {
 
 <div class="container">
 
-<h1>📊 Stock Prediction</h1>
+<div class="market-banner">
+
+AI Powered Stock Analytics Dashboard
+
+</div>
+
+<div class="header">
+
+<h1>
+AI Stock Predictor
+</h1>
+
+<div class="header-line">
+</div>
+
+<p>
+
+Forecast stock prices using
+deep learning and historical
+market data.
+
+</p>
+
+</div>
 
 <form
 method="POST"
 action="/"
-enctype="multipart/form-data">
+enctype="multipart/form-data"
+onsubmit="showLoading()">
 
-<label>Select Stock</label>
+<label>
+Select Stock
+</label>
 
 <select
 name="stock"
@@ -165,8 +608,12 @@ id="stockSelect"
 onchange="toggleUpload()"
 required>
 
-<option value="" disabled>
+<option
+value=""
+disabled>
+
 -- Select Option --
+
 </option>
 
 {% for code, name in stocks.items() %}
@@ -177,7 +624,8 @@ value="{{ code }}"
 selected
 {% endif %}>
 
-{{ name }} ({{ code }})
+{{ name }}
+({{ code }})
 
 </option>
 
@@ -188,36 +636,46 @@ value="MANUAL"
 {% if selected_stock not in stocks and selected_stock %}
 selected
 {% endif %}>
+
 Enter Stock Ticker
+
 </option>
 
 <option
 value="UPLOAD">
+
 Upload CSV Dataset
+
 </option>
 
 </select>
 
+<div
+id="manualTicker"
+style="display:none;">
 
-<!-- MANUAL TICKER -->
+<label>
 
-<div id="manualTicker" style="display:none;">
+Enter Stock Ticker
 
-<label>Enter Stock Ticker</label>
+</label>
 
 <input
 type="text"
 name="manual_stock"
-placeholder="Examples: AAPL, TSLA, NVDA, RELIANCE.NS">
+placeholder="AAPL, TSLA, NVDA, RELIANCE.NS">
 
 </div>
 
+<div
+id="uploadSection"
+style="display:none;">
 
-<!-- CSV UPLOAD -->
+<label>
 
-<div id="uploadSection" style="display:none;">
+Upload Stock CSV File
 
-<label>Upload Stock CSV File</label>
+</label>
 
 <input
 type="file"
@@ -226,48 +684,62 @@ accept=".csv">
 
 </div>
 
+<label>
 
-<!-- DYNAMIC HISTORICAL RANGE -->
+Past Historical Data Range
 
-<label>Past Historical Data Range</label>
+</label>
 
 <input
 type="text"
 name="past_range"
-placeholder="Examples: 6 months, 18 months, 3 years"
 required
-value="{{ selected_past }}">
+value="{{ selected_past }}"
+placeholder="Example: 2 years">
 
 <div class="help-text">
-Examples: 6 months, 12 months, 2 years, 5 years
+
+Examples:
+6 months,
+18 months,
+2 years,
+5 years
+
 </div>
 
+<label>
 
-<!-- DYNAMIC FUTURE RANGE -->
+Future Prediction Period
 
-<label>Future Prediction Period</label>
+</label>
 
 <input
 type="text"
 name="future_range"
-placeholder="Examples: 6 months, 2 years, 5 years"
 required
-value="{{ selected_future }}">
+value="{{ selected_future }}"
+placeholder="Example: 1 year">
 
 <div class="help-text">
-Examples: 3 months, 1 year, 2 years, 4.5 years
+
+Examples:
+3 months,
+1 year,
+2 years,
+4.5 years
+
 </div>
 
+<button
+id="predictBtn"
+class="predict-btn"
+type="submit">
 
-<button type="submit">
-
-Predict
+Generate Prediction
 
 </button>
 
 </form>
-
-
 {% if result %}
 
 {% if result.error %}
@@ -280,37 +752,130 @@ Predict
 
 {% else %}
 
-<div class="result">
+<div class="dashboard">
 
-<p>
-<b>Stock:</b>
-{{ result.stock }}
-</p>
+<div class="metric-card">
 
-<p>
-<b>Current Price:</b>
+<h4>
+Current Price
+</h4>
+
+<h2>
 {{ result.current_price }}
-</p>
+</h2>
 
-<p>
-<b>Predicted Price after {{ result.years }}:</b>
+</div>
+
+<div class="metric-card">
+
+<h4>
+Predicted Price
+</h4>
+
+<h2>
 {{ result.future_price }}
-</p>
+</h2>
 
-<p>
-<b>Expected Profit (%):</b>
-{{ result.profit_percent }}
-</p>
+</div>
 
-<p>
+<div class="metric-card">
 
-<b>Decision:</b>
+<h4>
+Expected Return
+</h4>
 
-<span class="{{ result.color }}">
+<h2>
+{{ result.profit_percent }}%
+</h2>
+
+</div>
+
+<div class="metric-card">
+
+<h4>
+Recommendation
+</h4>
+
+<h2
+class="{{ result.color }}">
 
 {{ result.decision }}
 
-</span>
+</h2>
+
+</div>
+
+</div>
+
+<div class="profit-meter">
+
+<div
+class="profit-fill"
+
+style="
+width:
+{% if result.profit_percent > 0 %}
+{{ result.profit_percent }}
+{% else %}
+0
+{% endif %}
+%;">
+
+</div>
+
+</div>
+
+<div class="summary-card">
+
+<h3>
+Investment Outlook
+</h3>
+
+<p>
+
+Based on the selected
+historical dataset,
+the deep learning model
+predicts that
+
+<strong>
+{{ result.stock }}
+</strong>
+
+may reach
+
+<strong>
+{{ result.future_price }}
+</strong>
+
+after
+
+<strong>
+{{ result.years }}
+</strong>.
+
+The expected return is
+
+<strong>
+{{ result.profit_percent }}%
+</strong>
+
+from the current market
+price.
+
+According to the model's
+analysis, the stock is
+currently classified as
+
+<strong>
+{{ result.decision }}
+</strong>.
+
+This recommendation is
+generated automatically
+using historical price
+patterns and forecasted
+market behaviour.
 
 </p>
 
@@ -320,12 +885,15 @@ Predict
 
 {% endif %}
 
-
 {% if graph_url %}
 
 <div class="graph-container">
 
-<h3>📈 Price Trend</h3>
+<h3>
+
+Forecast Visualization
+
+</h3>
 
 {{ graph_url | safe }}
 
@@ -336,4 +904,5 @@ Predict
 </div>
 
 </body>
+
 </html>
