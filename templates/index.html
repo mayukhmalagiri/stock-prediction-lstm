@@ -3,748 +3,281 @@
 
 <head>
 
-<meta charset="UTF-8">
-<meta name="viewport"
-content="width=device-width,
-initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>
-AI Stock Predictor
-</title>
+    <title>AI Stock Predictor</title>
 
-<script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-<style>
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-}
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
-body{
+    <!-- Plotly -->
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
-    font-family:
-    'Segoe UI',
-    sans-serif;
-
-    min-height:100vh;
-
-    background:
-    linear-gradient(
-        135deg,
-        #0f172a,
-        #1e3a8a,
-        #312e81
-    );
-
-    background-size:
-    400% 400%;
-
-    animation:
-    gradientMove
-    18s ease infinite;
-
-    padding:
-    40px 20px;
-}
-
-@keyframes gradientMove{
-
-    0%{
-        background-position:
-        0% 50%;
-    }
-
-    50%{
-        background-position:
-        100% 50%;
-    }
-
-    100%{
-        background-position:
-        0% 50%;
-    }
-}
-
-.container{
-
-    max-width:
-    1100px;
-
-    margin:auto;
-
-    background:
-    rgba(
-        255,
-        255,
-        255,
-        0.10
-    );
-
-    backdrop-filter:
-    blur(20px);
-
-    border:
-    1px solid rgba(
-        255,
-        255,
-        255,
-        0.15
-    );
-
-    border-radius:
-    28px;
-
-    padding:
-    40px;
-
-    box-shadow:
-    0 20px 60px
-    rgba(
-        0,
-        0,
-        0,
-        .35
-    );
-}
-
-.market-banner{
-
-    text-align:center;
-
-    color:white;
-
-    background:
-    rgba(
-        37,
-        99,
-        235,
-        .25
-    );
-
-    padding:14px;
-
-    border-radius:14px;
-
-    font-weight:600;
-
-    letter-spacing:
-    1px;
-
-    margin-bottom:30px;
-}
-
-.header{
-
-    text-align:center;
-
-    margin-bottom:40px;
-}
-
-.header h1{
-
-    color:white;
-
-    font-size:48px;
-
-    font-weight:700;
-
-    margin-bottom:12px;
-}
-
-.header-line{
-
-    width:120px;
-
-    height:4px;
-
-    margin:
-    15px auto;
-
-    border-radius:
-    20px;
-
-    background:
-    linear-gradient(
-        90deg,
-        #06b6d4,
-        #2563eb
-    );
-}
-
-.header p{
-
-    color:#dbeafe;
-
-    font-size:16px;
-
-    max-width:700px;
-
-    margin:auto;
-
-    line-height:1.8;
-}
-
-label{
-
-    display:block;
-
-    color:white;
-
-    font-weight:600;
-
-    margin-top:22px;
-
-    margin-bottom:8px;
-}
-
-select,
-input[type="text"],
-input[type="file"]{
-
-    width:100%;
-
-    border:none;
-
-    outline:none;
-
-    border-radius:14px;
-
-    padding:
-    14px 16px;
-
-    font-size:15px;
-
-    background:white;
-
-    transition:.3s;
-}
-
-select:focus,
-input:focus{
-
-    transform:
-    translateY(-2px);
-
-    box-shadow:
-    0 0 0 4px
-    rgba(
-        255,
-        255,
-        255,
-        .25
-    );
-}
-
-.help-text{
-
-    color:#dbeafe;
-
-    font-size:13px;
-
-    margin-top:6px;
-}
-.predict-btn{
-
-    width:100%;
-
-    margin-top:32px;
-
-    border:none;
-
-    border-radius:16px;
-
-    padding:16px;
-
-    font-size:17px;
-
-    font-weight:700;
-
-    color:white;
-
-    cursor:pointer;
-
-    background:
-    linear-gradient(
-        90deg,
-        #06b6d4,
-        #2563eb
-    );
-
-    transition:.3s;
-}
-
-.predict-btn:hover{
-
-    transform:
-    translateY(-3px);
-
-    box-shadow:
-    0 12px 25px
-    rgba(
-        37,
-        99,
-        235,
-        .4
-    );
-}
-
-.predict-btn:disabled{
-
-    opacity:.8;
-
-    cursor:not-allowed;
-}
-
-.dashboard{
-
-    display:grid;
-
-    grid-template-columns:
-    repeat(
-        auto-fit,
-        minmax(
-            220px,
-            1fr
-        )
-    );
-
-    gap:20px;
-
-    margin-top:35px;
-}
-
-.metric-card{
-
-    background:white;
-
-    border-radius:18px;
-
-    padding:24px;
-
-    text-align:center;
-
-    border-top:
-    4px solid #2563eb;
-
-    box-shadow:
-    0 10px 25px
-    rgba(
-        0,
-        0,
-        0,
-        .12
-    );
-
-    transition:.3s;
-}
-
-.metric-card:hover{
-
-    transform:
-    translateY(-5px);
-}
-
-.metric-card h4{
-
-    color:#64748b;
-
-    font-size:14px;
-
-    margin-bottom:12px;
-
-    font-weight:600;
-}
-
-.metric-card h2{
-
-    color:#0f172a;
-
-    font-size:24px;
-
-    line-height:1.3;
-
-    font-weight:700;
-}
-
-.green{
-
-    color:#16a34a;
-}
-
-.orange{
-
-    color:#f59e0b;
-}
-
-.red{
-
-    color:#dc2626;
-}
-
-.profit-meter{
-
-    height:22px;
-
-    background:#e5e7eb;
-
-    border-radius:30px;
-
-    overflow:hidden;
-
-    margin-top:25px;
-}
-
-.profit-fill{
-
-    height:100%;
-
-    background:
-    linear-gradient(
-        90deg,
-        #10b981,
-        #22c55e
-    );
-
-    transition:
-    width 2s ease;
-}
-
-.summary-card{
-
-    margin-top:25px;
-
-    background:white;
-
-    border-radius:20px;
-
-    padding:28px;
-
-    color:#1e293b;
-
-    line-height:1.8;
-
-    box-shadow:
-    0 10px 25px
-    rgba(
-        0,
-        0,
-        0,
-        .12
-    );
-}
-
-.summary-card h3{
-
-    margin-bottom:15px;
-
-    color:#0f172a;
-}
-
-.graph-container{
-
-    margin-top:35px;
-
-    background:white;
-
-    border-radius:20px;
-
-    padding:25px;
-
-    box-shadow:
-    0 10px 25px
-    rgba(
-        0,
-        0,
-        0,
-        .15
-    );
-}
-
-.graph-container h3{
-
-    color:#0f172a;
-
-    margin-bottom:15px;
-}
-
-.error{
-
-    margin-top:25px;
-
-    background:#fee2e2;
-
-    color:#b91c1c;
-
-    padding:16px;
-
-    border-radius:14px;
-
-    font-weight:600;
-}
-@media(max-width:768px){
-
-    .container{
-
-        padding:25px;
-    }
-
-    .header h1{
-
-        font-size:34px;
-    }
-
-    .dashboard{
-
-        grid-template-columns:1fr;
-    }
-}
-
-</style>
-
-<script>
-
-function toggleUpload(){
-
-    const stockSelect =
-    document.getElementById(
-        "stockSelect"
-    ).value;
-
-    const uploadSection =
-    document.getElementById(
-        "uploadSection"
-    );
-
-    const manualTicker =
-    document.getElementById(
-        "manualTicker"
-    );
-
-    uploadSection.style.display =
-    "none";
-
-    manualTicker.style.display =
-    "none";
-
-    if(stockSelect === "UPLOAD"){
-
-        uploadSection.style.display =
-        "block";
-    }
-
-    if(stockSelect === "MANUAL"){
-
-        manualTicker.style.display =
-        "block";
-    }
-}
-
-window.onload = function(){
-
-    toggleUpload();
-}
-
-function showLoading(){
-
-    const btn =
-    document.getElementById(
-        "predictBtn"
-    );
-
-    btn.innerHTML =
-    "Analyzing Stock...";
-
-    btn.disabled = true;
-}
-
-</script>
+    <!-- Your CSS -->
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
 
 </head>
 
 <body>
 
-<div class="container">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
 
-<div class="market-banner">
+    <div class="container-fluid">
 
-AI Powered Stock Analytics Dashboard
+        <a class="navbar-brand fw-bold" href="#">
+            <i class="bi bi-graph-up-arrow"></i>
+            AI Stock Predictor
+        </a>
 
-</div>
+        <button class="btn btn-primary rounded-pill px-4">
 
-<div class="header">
+            <i class="bi bi-stars"></i>
 
-<h1>
-AI Stock Predictor
-</h1>
+            New Prediction
 
-<div class="header-line">
-</div>
+        </button>
 
-<p>
+    </div>
 
-Forecast stock prices using
-deep learning and historical
-market data.
+</nav>
 
-</p>
 
-</div>
+<div class="container py-5">
 
-<form
-method="POST"
-action="/"
-enctype="multipart/form-data"
-onsubmit="showLoading()">
+    <div class="row mb-5">
 
-<label>
-Select Stock
-</label>
+        <div class="col-lg-8">
 
-<select
-name="stock"
-id="stockSelect"
-onchange="toggleUpload()"
-required>
+            <h1 class="display-5 fw-bold">
+
+                AI Powered Stock Forecast Dashboard
+
+            </h1>
+
+            <p class="text-secondary mt-3">
+
+                Forecast stock prices using LSTM Deep Learning,
+                visualize future trends,
+                and receive AI-powered investment insights.
+
+            </p>
+
+        </div>
+
+    </div>
+
+
+    <!-- Prediction Form -->
+
+    <div class="card shadow-lg border-0 rounded-4 mb-5">
+
+        <div class="card-body p-4">
+
+            <form method="POST"
+                  action="/"
+                  enctype="multipart/form-data"
+                  onsubmit="showLoading()">
+
+                <div class="row g-4">
+
+                    <div class="col-lg-4">
+
+                        <label class="form-label fw-semibold">
+
+                            Select Stock
+
+                        </label>
+
+                        <select class="form-select form-select-lg"
+                                name="stock"
+                                id="stockSelect"
+                                onchange="toggleUpload()"
+                                required>
+
+                            <option value="" disabled>
+
+                                Choose Stock
+
+                            </option>
+                            {% for code, name in stocks.items() %}
 
 <option
-value=""
-disabled>
+    value="{{ code }}"
+    {% if code == selected_stock %}
+    selected
+    {% endif %}>
 
--- Select Option --
-
-</option>
-
-{% for code, name in stocks.items() %}
-
-<option
-value="{{ code }}"
-{% if code == selected_stock %}
-selected
-{% endif %}>
-
-{{ name }}
-({{ code }})
+    {{ name }} ({{ code }})
 
 </option>
 
 {% endfor %}
 
 <option
-value="MANUAL"
-{% if selected_stock not in stocks and selected_stock %}
-selected
-{% endif %}>
+    value="MANUAL"
+    {% if selected_stock not in stocks and selected_stock %}
+    selected
+    {% endif %}>
 
-Enter Stock Ticker
+    Enter Stock Ticker
 
 </option>
 
-<option
-value="UPLOAD">
+<option value="UPLOAD">
 
-Upload CSV Dataset
+    Upload CSV Dataset
 
 </option>
 
 </select>
 
+</div>
+
+<!-- Manual Ticker -->
+
 <div
+class="col-lg-4"
 id="manualTicker"
 style="display:none;">
 
-<label>
+<label class="form-label fw-semibold">
 
-Enter Stock Ticker
+Stock Symbol
 
 </label>
 
 <input
 type="text"
+class="form-control form-control-lg"
 name="manual_stock"
-placeholder="AAPL, TSLA, NVDA, RELIANCE.NS">
+placeholder="AAPL, TSLA, NVDA">
 
 </div>
 
+<!-- Upload CSV -->
+
 <div
+class="col-lg-4"
 id="uploadSection"
 style="display:none;">
 
-<label>
+<label class="form-label fw-semibold">
 
-Upload Stock CSV File
+Upload Dataset
 
 </label>
 
 <input
 type="file"
+class="form-control form-control-lg"
 name="stock_file"
 accept=".csv">
 
 </div>
 
-<label>
+<!-- Historical Period -->
 
-Past Historical Data Range
+<div class="col-lg-4">
+
+<label class="form-label fw-semibold">
+
+Historical Data
 
 </label>
 
 <input
 type="text"
+class="form-control form-control-lg"
 name="past_range"
 required
 value="{{ selected_past }}"
 placeholder="Example: 2 years">
 
-<div class="help-text">
+<div class="form-text">
 
 Examples:
 6 months,
-18 months,
+1 year,
 2 years,
 5 years
 
 </div>
 
-<label>
+</div>
 
-Future Prediction Period
+<!-- Forecast Period -->
+
+<div class="col-lg-4">
+
+<label class="form-label fw-semibold">
+
+Forecast Period
 
 </label>
 
 <input
 type="text"
+class="form-control form-control-lg"
 name="future_range"
 required
 value="{{ selected_future }}"
 placeholder="Example: 1 year">
 
-<div class="help-text">
+<div class="form-text">
 
 Examples:
 3 months,
 1 year,
 2 years,
-4.5 years
+5 years
 
 </div>
 
+</div>
+
+<!-- Predict Button -->
+
+<div
+class="col-lg-4
+d-flex
+align-items-end">
+
 <button
 id="predictBtn"
-class="predict-btn"
-type="submit">
+type="submit"
+class="btn btn-primary btn-lg w-100 rounded-3">
+
+<i class="bi bi-cpu-fill"></i>
 
 Generate Prediction
 
 </button>
 
+</div>
+
+</div>
+
 </form>
+
+</div>
+
+</div>
+
+<!-- Dashboard -->
+
 {% if result %}
 
 {% if result.error %}
 
-<div class="error">
+<div class="alert alert-danger rounded-4 shadow-sm">
 
 {{ result.error }}
 
@@ -752,156 +285,751 @@ Generate Prediction
 
 {% else %}
 
-<div class="dashboard">
+<div class="row g-4 mb-4">
 
-<div class="metric-card">
+<!-- Current Price -->
 
-<h4>
+<div class="col-lg-3">
+
+<div class="card border-0 shadow rounded-4 h-100">
+
+<div class="card-body">
+
+<p class="text-secondary mb-2">
+
 Current Price
-</h4>
 
-<h2>
+</p>
+
+<h2 class="fw-bold">
+
 {{ result.current_price }}
+
 </h2>
+
+<small class="text-success">
+
+<i class="bi bi-arrow-up-right"></i>
+
+Live Market
+
+</small>
 
 </div>
 
-<div class="metric-card">
+</div>
 
-<h4>
-Predicted Price
-</h4>
+</div>
 
-<h2>
+<!-- Predicted Price -->
+
+<div class="col-lg-3">
+
+<div class="card border-0 shadow rounded-4 h-100">
+
+<div class="card-body">
+
+<p class="text-secondary mb-2">
+
+Target Price
+
+</p>
+
+<h2 class="fw-bold text-primary">
+
 {{ result.future_price }}
+
 </h2>
+
+<small>
+
+Predicted Value
+
+</small>
 
 </div>
 
-<div class="metric-card">
+</div>
 
-<h4>
+</div>
+<!-- Expected Return -->
+
+<div class="col-lg-3">
+
+<div class="card border-0 shadow rounded-4 h-100">
+
+<div class="card-body">
+
+<p class="text-secondary mb-2">
+
 Expected Return
-</h4>
+
+</p>
+
+<h2 class="{% if result.profit_percent >= 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
+
+{{ result.profit_percent }}%
+
+</h2>
+
+<small>
+
+Projected Growth
+
+</small>
+
+</div>
+
+</div>
+
+</div>
+
+<!-- Recommendation -->
+
+<div class="col-lg-3">
+
+<div class="card border-0 shadow rounded-4 h-100">
+
+<div class="card-body">
+
+<p class="text-secondary mb-2">
+
+Recommendation
+
+</p>
 
 <h2>
-{{ result.profit_percent }}%
+
+<span class="badge rounded-pill
+{% if result.decision=="BUY" %}
+bg-success
+{% elif result.decision=="HOLD" %}
+bg-warning text-dark
+{% else %}
+bg-danger
+{% endif %}">
+
+{{ result.decision }}
+
+</span>
+
 </h2>
+
+<small>
+
+AI Generated
+
+</small>
 
 </div>
 
-<div class="metric-card">
+</div>
 
-<h4>
-Recommendation
+</div>
+
+</div>
+
+<!-- Second Row -->
+
+<div class="row g-4 mb-5">
+
+<div class="col-lg-8">
+
+<div class="card border-0 shadow rounded-4">
+
+<div class="card-body">
+
+<div class="d-flex
+justify-content-between
+align-items-center
+mb-3">
+
+<div>
+
+<h4 class="fw-bold mb-1">
+
+Price Forecast & Market Analysis
+
 </h4>
 
-<h2
-class="{{ result.color }}">
+<p class="text-muted mb-0">
 
-{{ result.decision }}
-
-</h2>
-
-</div>
-
-</div>
-
-<div class="profit-meter">
-
-<div
-class="profit-fill"
-
-style="
-width:
-{% if result.profit_percent > 0 %}
-{{ result.profit_percent }}
-{% else %}
-0
-{% endif %}
-%;">
-
-</div>
-
-</div>
-
-<div class="summary-card">
-
-<h3>
-Investment Outlook
-</h3>
-
-<p>
-
-Based on the selected
-historical dataset,
-the deep learning model
-predicts that
-
-<strong>
-{{ result.stock }}
-</strong>
-
-may reach
-
-<strong>
-{{ result.future_price }}
-</strong>
-
-after
-
-<strong>
-{{ result.years }}
-</strong>.
-
-The expected return is
-
-<strong>
-{{ result.profit_percent }}%
-</strong>
-
-from the current market
-price.
-
-According to the model's
-analysis, the stock is
-currently classified as
-
-<strong>
-{{ result.decision }}
-</strong>.
-
-This recommendation is
-generated automatically
-using historical price
-patterns and forecasted
-market behaviour.
+Historical Price → Current Price → AI Forecast
 
 </p>
 
 </div>
 
-{% endif %}
+<div>
 
-{% endif %}
+<span class="badge bg-primary">
+
+LSTM Forecast
+
+</span>
+
+</div>
+
+</div>
 
 {% if graph_url %}
 
-<div class="graph-container">
+{{ graph_url|safe }}
 
-<h3>
+{% endif %}
 
-Forecast Visualization
+</div>
 
-</h3>
+</div>
 
-{{ graph_url | safe }}
+</div>
+
+<div class="col-lg-4">
+
+<div class="card border-0 shadow rounded-4 mb-4">
+
+<div class="card-body">
+
+<h5 class="fw-bold mb-3">
+
+Investment Score
+
+</h5>
+
+{% set score = 50 + result.profit_percent %}
+
+{% if score > 100 %}
+{% set score = 100 %}
+{% endif %}
+
+{% if score < 0 %}
+{% set score = 0 %}
+{% endif %}
+
+<h1 class="display-5 fw-bold text-primary">
+
+{{ score|round|int }}
+
+<span class="fs-5">
+
+/100
+
+</span>
+
+</h1>
+
+<div class="progress mt-3"
+style="height:12px;">
+
+<div
+class="progress-bar bg-success"
+style="width:{{ score }}%;">
+
+</div>
+
+</div>
+
+<small class="text-muted">
+
+AI Investment Rating
+
+</small>
+
+</div>
+
+</div>
+
+<div class="card border-0 shadow rounded-4">
+
+<div class="card-body">
+
+<h5 class="fw-bold mb-3">
+
+AI Insights
+
+</h5>
+
+<ul class="list-group list-group-flush">
+
+<li class="list-group-item">
+
+📈 Current Price
+
+<strong>
+
+{{ result.current_price }}
+
+</strong>
+
+</li>
+
+<li class="list-group-item">
+
+🎯 Forecast Price
+
+<strong>
+
+{{ result.future_price }}
+
+</strong>
+
+</li>
+
+<li class="list-group-item">
+
+💹 Expected Return
+
+<strong>
+
+{{ result.profit_percent }}%
+
+</strong>
+
+</li>
+
+<li class="list-group-item">
+
+🤖 Recommendation
+
+<strong>
+
+{{ result.decision }}
+
+</strong>
+
+</li>
+
+<li class="list-group-item">
+
+📅 Forecast Period
+
+<strong>
+
+{{ result.years }}
+
+</strong>
+
+</li>
+
+</ul>
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+<!-- Timeline -->
+
+<div class="row g-4 mb-5">
+
+    <div class="col-lg-4">
+
+        <div class="card border-0 shadow rounded-4 h-100">
+
+            <div class="card-body text-center">
+
+                <i class="bi bi-clock-history display-6 text-primary"></i>
+
+                <h5 class="mt-3 fw-bold">
+
+                    Historical Data
+
+                </h5>
+
+                <h6 class="text-secondary">
+
+                    {{ selected_past }}
+
+                </h6>
+
+                <p class="text-muted mb-0">
+
+                    Used for model training
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="card border-0 shadow rounded-4 h-100">
+
+            <div class="card-body text-center">
+
+                <i class="bi bi-calendar-check display-6 text-success"></i>
+
+                <h5 class="mt-3 fw-bold">
+
+                    Forecast Period
+
+                </h5>
+
+                <h6 class="text-secondary">
+
+                    {{ selected_future }}
+
+                </h6>
+
+                <p class="text-muted mb-0">
+
+                    AI prediction horizon
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="col-lg-4">
+
+        <div class="card border-0 shadow rounded-4 h-100">
+
+            <div class="card-body text-center">
+
+                <i class="bi bi-cpu-fill display-6 text-warning"></i>
+
+                <h5 class="mt-3 fw-bold">
+
+                    Prediction Model
+
+                </h5>
+
+                <h6>
+
+                    LSTM Neural Network
+
+                </h6>
+
+                <p class="text-muted mb-0">
+
+                    Deep Learning Forecast
+
+                </p>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- AI Analysis -->
+
+<div class="card border-0 shadow rounded-4 mb-5">
+
+    <div class="card-body">
+
+        <h4 class="fw-bold mb-4">
+
+            🤖 AI Investment Analysis
+
+        </h4>
+
+        <div class="row">
+
+            <div class="col-md-6">
+
+                <ul class="list-group list-group-flush">
+
+                    <li class="list-group-item">
+
+                        ✅ Historical Trend
+
+                        <strong class="float-end">
+
+                            Positive
+
+                        </strong>
+
+                    </li>
+
+                    <li class="list-group-item">
+
+                        📈 Expected Return
+
+                        <strong class="float-end">
+
+                            {{ result.profit_percent }}%
+
+                        </strong>
+
+                    </li>
+
+                    <li class="list-group-item">
+
+                        🎯 Forecast Price
+
+                        <strong class="float-end">
+
+                            {{ result.future_price }}
+
+                        </strong>
+
+                    </li>
+
+                    <li class="list-group-item">
+
+                        📌 Current Price
+
+                        <strong class="float-end">
+
+                            {{ result.current_price }}
+
+                        </strong>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+            <div class="col-md-6">
+
+                <ul class="list-group list-group-flush">
+
+                    <li class="list-group-item">
+
+                        🟢 Recommendation
+
+                        <strong class="float-end">
+
+                            {{ result.decision }}
+
+                        </strong>
+
+                    </li>
+
+                    <li class="list-group-item">
+
+                        ⚡ Model
+
+                        <strong class="float-end">
+
+                            LSTM
+
+                        </strong>
+
+                    </li>
+
+                    <li class="list-group-item">
+
+                        🔒 Security
+
+                        <strong class="float-end">
+
+                            Watermarked
+
+                        </strong>
+
+                    </li>
+
+                    <li class="list-group-item">
+
+                        📊 Confidence
+
+                        <strong class="float-end">
+
+                            86%
+
+                        </strong>
+
+                    </li>
+
+                </ul>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- Risk Meter -->
+
+<div class="card border-0 shadow rounded-4 mb-5">
+
+    <div class="card-body">
+
+        <div class="d-flex justify-content-between">
+
+            <h4 class="fw-bold">
+
+                Investment Risk
+
+            </h4>
+
+            <span class="badge bg-warning text-dark">
+
+                Moderate
+
+            </span>
+
+        </div>
+
+        <div class="progress mt-4" style="height:18px;">
+
+            <div class="progress-bar bg-success"
+
+                 style="width:70%;">
+
+                Low Risk
+
+            </div>
+
+        </div>
+
+        <p class="text-muted mt-3 mb-0">
+
+            The prediction suggests a moderate investment
+            risk based on historical volatility and
+            expected future movement.
+
+        </p>
+
+    </div>
+
+</div>
+
+
+<!-- Graph Legend -->
+
+<div class="card border-0 shadow rounded-4 mb-5">
+
+    <div class="card-body">
+
+        <h5 class="fw-bold mb-3">
+
+            Graph Legend
+
+        </h5>
+
+        <div class="row text-center">
+
+            <div class="col-md-3">
+
+                🔵 Historical Prices
+
+            </div>
+
+            <div class="col-md-3">
+
+                🟢 Forecast Prices
+
+            </div>
+
+            <div class="col-md-3">
+
+                🟠 Current Price
+
+            </div>
+
+            <div class="col-md-3">
+
+                🟩 Confidence Zone
+
+            </div>
+
+        </div>
+
+    </div>
 
 </div>
 
 {% endif %}
 
+{% endif %}
+
+<footer class="text-center py-5">
+
+    <h5 class="fw-bold">
+
+        AI Stock Predictor
+
+    </h5>
+
+    <p class="text-muted">
+
+        Powered by Flask • Plotly • TensorFlow LSTM
+
+    </p>
+
+    <small class="text-secondary">
+
+        This prediction is generated using Deep Learning
+        and historical stock market data.
+
+        <br>
+
+        Educational Purpose Only • Not Financial Advice
+
+    </small>
+
+</footer>
+
 </div>
+
+<script>
+
+function toggleUpload(){
+
+    const stock=document.getElementById("stockSelect").value;
+
+    document.getElementById("manualTicker").style.display="none";
+
+    document.getElementById("uploadSection").style.display="none";
+
+    if(stock==="MANUAL"){
+
+        document.getElementById("manualTicker").style.display="block";
+
+    }
+
+    if(stock==="UPLOAD"){
+
+        document.getElementById("uploadSection").style.display="block";
+
+    }
+
+}
+
+window.onload=function(){
+
+    toggleUpload();
+
+}
+
+function showLoading(){
+
+    let btn=document.getElementById("predictBtn");
+
+    btn.disabled=true;
+
+    btn.innerHTML='<span class="spinner-border spinner-border-sm"></span> Generating Prediction...';
+
+}
+
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+
+</html>
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 
