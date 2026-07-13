@@ -4,23 +4,27 @@
 <head>
 
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
     <title>AI Stock Predictor</title>
 
     <!-- Google Font -->
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+          rel="stylesheet">
 
     <!-- Bootstrap -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
 
     <!-- Bootstrap Icons -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+          rel="stylesheet">
 
     <!-- Plotly -->
     <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
 
-    <!-- Your CSS -->
+    <!-- Custom CSS -->
     <link rel="stylesheet"
           href="{{ url_for('static', filename='style.css') }}">
 
@@ -28,67 +32,165 @@
 
 <body>
 
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark shadow-sm">
+<!-- ================= NAVBAR ================= -->
 
-    <div class="container-fluid">
+<nav class="navbar navbar-expand-lg navbar-dark shadow-lg fixed-top">
 
-        <a class="navbar-brand fw-bold" href="#">
-            <i class="bi bi-graph-up-arrow"></i>
+    <div class="container">
+
+        <a class="navbar-brand fw-bold fs-3"
+           href="#">
+
+            <i class="bi bi-cpu-fill me-2"></i>
+
             AI Stock Predictor
+
         </a>
 
-        <button class="btn btn-primary rounded-pill px-4">
+        <button class="navbar-toggler"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbar">
 
-            <i class="bi bi-stars"></i>
-
-            New Prediction
+            <span class="navbar-toggler-icon"></span>
 
         </button>
+
+        <div class="collapse navbar-collapse"
+             id="navbar">
+
+            <ul class="navbar-nav ms-auto align-items-center">
+
+                <li class="nav-item">
+
+                    <a class="nav-link active"
+                       href="#">
+
+                        Dashboard
+
+                    </a>
+
+                </li>
+
+                <li class="nav-item">
+
+                    <a class="nav-link"
+                       href="#forecast">
+
+                        Forecast
+
+                    </a>
+
+                </li>
+
+                <li class="nav-item">
+
+                    <a class="nav-link"
+                       href="#analysis">
+
+                        AI Analysis
+
+                    </a>
+
+                </li>
+
+                <li class="nav-item ms-3">
+
+                    <button class="btn btn-primary px-4 rounded-pill">
+
+                        <i class="bi bi-stars"></i>
+
+                        New Prediction
+
+                    </button>
+
+                </li>
+
+            </ul>
+
+        </div>
 
     </div>
 
 </nav>
 
 
-<div class="container py-5">
+<!-- ================= HERO ================= -->
 
-    <div class="row mb-5">
+<section class="hero-section">
 
-        <div class="col-lg-8">
+<div class="container">
 
-            <h1 class="display-5 fw-bold">
+<div class="row align-items-center">
 
-                AI Powered Stock Forecast Dashboard
+<div class="col-lg-8">
 
-            </h1>
+<h1 class="display-4 fw-bold">
 
-            <p class="text-secondary mt-3">
+Professional AI Stock Market Forecasting
 
-                Forecast stock prices using LSTM Deep Learning,
-                visualize future trends,
-                and receive AI-powered investment insights.
+</h1>
 
-            </p>
+<p class="lead mt-3">
 
-        </div>
+Predict future stock prices using a Watermarked
+LSTM Deep Learning model with interactive
+visualization and intelligent investment insights.
 
-    </div>
+</p>
+
+</div>
+
+<div class="col-lg-4 text-lg-end mt-4 mt-lg-0">
+
+<div class="hero-badge">
+
+<i class="bi bi-graph-up-arrow"></i>
+
+AI Powered Forecast
+
+</div>
+
+</div>
+
+</div>
+
+</div>
+
+</section>
 
 
-    <!-- Prediction Form -->
+<div class="container pb-5">
 
-    <div class="card shadow-lg border-0 rounded-4 mb-5">
+<!-- ================= FORM ================= -->
 
-        <div class="card-body p-4">
+<div class="dashboard-card mb-5">
 
-            <form method="POST"
-                  action="/"
-                  enctype="multipart/form-data"
-                  onsubmit="showLoading()">
+<div class="card-header-custom">
 
-                <div class="row g-4">
+<h3>
 
-                    <div class="col-lg-4">
+<i class="bi bi-search"></i>
+
+Generate New Prediction
+
+</h3>
+
+</div>
+
+<div class="card-body p-4">
+
+<form method="POST"
+
+      action="/"
+
+      enctype="multipart/form-data"
+
+      onsubmit="showLoading()">
+
+<div class="row g-4">
+                        <!-- ================= STOCK ================= -->
+
+                    <div class="col-lg-3">
 
                         <label class="form-label fw-semibold">
 
@@ -107,548 +209,344 @@
                                 Choose Stock
 
                             </option>
+
                             {% for code, name in stocks.items() %}
 
-<option
-    value="{{ code }}"
-    {% if code == selected_stock %}
-    selected
-    {% endif %}>
+                            <option value="{{ code }}"
+                                {% if code == selected_stock %}
+                                selected
+                                {% endif %}>
 
-    {{ name }} ({{ code }})
+                                {{ name }} ({{ code }})
 
-</option>
+                            </option>
 
-{% endfor %}
+                            {% endfor %}
 
-<option
-    value="MANUAL"
-    {% if selected_stock not in stocks and selected_stock %}
-    selected
-    {% endif %}>
+                            <option value="MANUAL"
+                                {% if selected_stock not in stocks and selected_stock %}
+                                selected
+                                {% endif %}>
 
-    Enter Stock Ticker
+                                Enter Stock Symbol
 
-</option>
+                            </option>
 
-<option value="UPLOAD">
+                            <option value="UPLOAD">
 
-    Upload CSV Dataset
+                                Upload CSV Dataset
 
-</option>
+                            </option>
 
-</select>
+                        </select>
 
-</div>
+                    </div>
 
-<!-- Manual Ticker -->
 
-<div
-class="col-lg-4"
-id="manualTicker"
-style="display:none;">
+                    <!-- ================= MANUAL STOCK ================= -->
 
-<label class="form-label fw-semibold">
+                    <div class="col-lg-3"
+                         id="manualTicker"
+                         style="display:none;">
 
-Stock Symbol
+                        <label class="form-label fw-semibold">
 
-</label>
+                            Manual Stock Symbol
 
-<input
-type="text"
-class="form-control form-control-lg"
-name="manual_stock"
-placeholder="AAPL, TSLA, NVDA">
+                        </label>
 
-</div>
+                        <input
+                            type="text"
+                            class="form-control form-control-lg"
+                            name="manual_stock"
+                            placeholder="AAPL, TSLA, NVDA">
 
-<!-- Upload CSV -->
+                    </div>
 
-<div
-class="col-lg-4"
-id="uploadSection"
-style="display:none;">
 
-<label class="form-label fw-semibold">
+                    <!-- ================= CSV ================= -->
 
-Upload Dataset
+                    <div class="col-lg-3"
+                         id="uploadSection"
+                         style="display:none;">
 
-</label>
+                        <label class="form-label fw-semibold">
 
-<input
-type="file"
-class="form-control form-control-lg"
-name="stock_file"
-accept=".csv">
+                            Upload Dataset
 
-</div>
+                        </label>
 
-<!-- Historical Period -->
+                        <input
+                            type="file"
+                            class="form-control form-control-lg"
+                            name="stock_file"
+                            accept=".csv">
 
-<div class="col-lg-4">
+                    </div>
 
-<label class="form-label fw-semibold">
 
-Historical Data
+                    <!-- ================= HISTORY ================= -->
 
-</label>
+                    <div class="col-lg-3">
 
-<input
-type="text"
-class="form-control form-control-lg"
-name="past_range"
-required
-value="{{ selected_past }}"
-placeholder="Example: 2 years">
+                        <label class="form-label fw-semibold">
 
-<div class="form-text">
+                            Historical Data
 
-Examples:
-6 months,
-1 year,
-2 years,
-5 years
+                        </label>
 
-</div>
+                        <input
+                            type="text"
+                            class="form-control form-control-lg"
+                            name="past_range"
+                            required
+                            value="{{ selected_past }}"
+                            placeholder="Example: 2 years">
 
-</div>
+                        <div class="form-text">
 
-<!-- Forecast Period -->
+                            6 months • 1 year • 2 years • 5 years
 
-<div class="col-lg-4">
+                        </div>
 
-<label class="form-label fw-semibold">
+                    </div>
 
-Forecast Period
 
-</label>
+                    <!-- ================= FORECAST ================= -->
 
-<input
-type="text"
-class="form-control form-control-lg"
-name="future_range"
-required
-value="{{ selected_future }}"
-placeholder="Example: 1 year">
+                    <div class="col-lg-3">
 
-<div class="form-text">
+                        <label class="form-label fw-semibold">
 
-Examples:
-3 months,
-1 year,
-2 years,
-5 years
+                            Forecast Period
 
-</div>
+                        </label>
 
-</div>
+                        <input
+                            type="text"
+                            class="form-control form-control-lg"
+                            name="future_range"
+                            required
+                            value="{{ selected_future }}"
+                            placeholder="Example: 1 year">
 
-<!-- Predict Button -->
+                        <div class="form-text">
 
-<div
-class="col-lg-4
-d-flex
-align-items-end">
+                            3 months • 6 months • 1 year • 5 years
 
-<button
-id="predictBtn"
-type="submit"
-class="btn btn-primary btn-lg w-100 rounded-3">
+                        </div>
 
-<i class="bi bi-cpu-fill"></i>
+                    </div>
 
-Generate Prediction
 
-</button>
+                    <!-- ================= BUTTON ================= -->
 
-</div>
+                    <div class="col-lg-3 d-flex align-items-end">
 
-</div>
+                        <button
+                            id="predictBtn"
+                            class="btn btn-gradient w-100 btn-lg"
+                            type="submit">
 
-</form>
+                            <i class="bi bi-cpu-fill me-2"></i>
 
-</div>
+                            Generate Prediction
 
-</div>
+                        </button>
 
-<!-- Dashboard -->
+                    </div>
 
-{% if result %}
+                </div>
 
-{% if result.error %}
+            </form>
 
-<div class="alert alert-danger rounded-4 shadow-sm">
+            {% if result and result.error %}
+            <div class="alert alert-danger mt-4">
+                <h5>Prediction Error</h5>
+                <pre>{{ result.error }}</pre>
+            </div>
+            {% endif %}
 
-{{ result.error }}
+        </div>
 
-</div>
+    </div>
 
-{% else %}
+    {% if result %}
 
-<div class="row g-4 mb-4">
+    {% if not result.error %}
 
-<!-- Current Price -->
+    <!-- ======================================================= -->
+    <!--                 DASHBOARD SUMMARY                       -->
+    <!-- ======================================================= -->
 
-<div class="col-lg-3">
+    <div class="row g-4 mb-4">
 
-<div class="card border-0 shadow rounded-4 h-100">
+        <!-- Current Price -->
 
-<div class="card-body">
+        <div class="col-xl-3 col-md-6">
 
-<p class="text-secondary mb-2">
+            <div class="metric-card">
 
-Current Price
+                <div class="metric-icon bg-primary">
 
-</p>
+                    <i class="bi bi-currency-dollar"></i>
 
-<h2 class="fw-bold">
+                </div>
 
-{{ result.current_price }}
+                <div class="metric-content">
 
-</h2>
+                    <small>
 
-<small class="text-success">
+                        Current Price
 
-<i class="bi bi-arrow-up-right"></i>
+                    </small>
 
-Live Market
+                    <h2>
 
-</small>
+                        {{ result.current_price }}
 
-</div>
+                    </h2>
 
-</div>
+                    <span class="metric-green">
 
-</div>
+                        Live Market
 
-<!-- Predicted Price -->
+                    </span>
 
-<div class="col-lg-3">
+                </div>
 
-<div class="card border-0 shadow rounded-4 h-100">
+            </div>
 
-<div class="card-body">
+        </div>
 
-<p class="text-secondary mb-2">
+        <!-- Predicted Price -->
 
-Target Price
+        <div class="col-xl-3 col-md-6">
 
-</p>
+            <div class="metric-card">
 
-<h2 class="fw-bold text-primary">
+                <div class="metric-icon bg-success">
 
-{{ result.future_price }}
+                    <i class="bi bi-graph-up-arrow"></i>
 
-</h2>
+                </div>
 
-<small>
+                <div class="metric-content">
 
-Predicted Value
+                    <small>
 
-</small>
+                        Predicted Price
 
-</div>
+                    </small>
 
-</div>
+                    <h2>
 
-</div>
-<!-- Expected Return -->
+                        {{ result.future_price }}
 
-<div class="col-lg-3">
+                    </h2>
 
-<div class="card border-0 shadow rounded-4 h-100">
+                    <span class="metric-blue">
 
-<div class="card-body">
+                        AI Forecast
 
-<p class="text-secondary mb-2">
+                    </span>
 
-Expected Return
+                </div>
 
-</p>
+            </div>
 
-<h2 class="{% if result.profit_percent >= 0 %}text-success{% else %}text-danger{% endif %} fw-bold">
+        </div>
+                <!-- Expected Return -->
 
-{{ result.profit_percent }}%
+        <div class="col-xl-3 col-md-6">
 
-</h2>
+            <div class="metric-card">
 
-<small>
+                <div class="metric-icon bg-warning">
 
-Projected Growth
+                    <i class="bi bi-arrow-up-right-circle"></i>
 
-</small>
+                </div>
 
-</div>
+                <div class="metric-content">
 
-</div>
+                    <small>
 
-</div>
+                        Expected Return
 
-<!-- Recommendation -->
+                    </small>
 
-<div class="col-lg-3">
+                    <h2 class="{% if result.profit_percent >= 0 %}text-success{% else %}text-danger{% endif %}">
 
-<div class="card border-0 shadow rounded-4 h-100">
+                        {{ result.profit_percent }}%
 
-<div class="card-body">
+                    </h2>
 
-<p class="text-secondary mb-2">
+                    <span class="metric-orange">
 
-Recommendation
+                        Forecast Growth
 
-</p>
+                    </span>
 
-<h2>
+                </div>
 
-<span class="badge rounded-pill
-{% if result.decision=="BUY" %}
-bg-success
-{% elif result.decision=="HOLD" %}
-bg-warning text-dark
-{% else %}
-bg-danger
-{% endif %}">
+            </div>
 
-{{ result.decision }}
+        </div>
 
-</span>
 
-</h2>
 
-<small>
+        <!-- Recommendation -->
 
-AI Generated
+        <div class="col-xl-3 col-md-6">
 
-</small>
+            <div class="metric-card">
 
-</div>
+                <div class="metric-icon bg-danger">
 
-</div>
+                    <i class="bi bi-robot"></i>
 
-</div>
+                </div>
 
-</div>
+                <div class="metric-content">
 
-<!-- Second Row -->
+                    <small>
 
-<div class="row g-4 mb-5">
+                        AI Recommendation
 
-<div class="col-lg-8">
+                    </small>
 
-<div class="card border-0 shadow rounded-4">
+                    <h2>
 
-<div class="card-body">
+                        <span class="badge rounded-pill
 
-<div class="d-flex
-justify-content-between
-align-items-center
-mb-3">
+                        {% if result.decision=="BUY" %}
 
-<div>
+                        bg-success
 
-<h4 class="fw-bold mb-1">
+                        {% elif result.decision=="HOLD" %}
 
-Price Forecast & Market Analysis
+                        bg-warning text-dark
 
-</h4>
+                        {% else %}
 
-<p class="text-muted mb-0">
+                        bg-danger
 
-Historical Price → Current Price → AI Forecast
+                        {% endif %}">
 
-</p>
+                        {{ result.decision }}
 
-</div>
+                        </span>
 
-<div>
+                    </h2>
 
-<span class="badge bg-primary">
+                    <span class="metric-red">
 
-LSTM Forecast
+                        Deep Learning Decision
 
-</span>
+                    </span>
 
-</div>
-
-</div>
-
-{% if graph_url %}
-
-{{ graph_url|safe }}
-
-{% endif %}
-
-</div>
-
-</div>
-
-</div>
-
-<div class="col-lg-4">
-
-<div class="card border-0 shadow rounded-4 mb-4">
-
-<div class="card-body">
-
-<h5 class="fw-bold mb-3">
-
-Investment Score
-
-</h5>
-
-{% set score = 50 + result.profit_percent %}
-
-{% if score > 100 %}
-{% set score = 100 %}
-{% endif %}
-
-{% if score < 0 %}
-{% set score = 0 %}
-{% endif %}
-
-<h1 class="display-5 fw-bold text-primary">
-
-{{ score|round|int }}
-
-<span class="fs-5">
-
-/100
-
-</span>
-
-</h1>
-
-<div class="progress mt-3"
-style="height:12px;">
-
-<div
-class="progress-bar bg-success"
-style="width:{{ score }}%;">
-
-</div>
-
-</div>
-
-<small class="text-muted">
-
-AI Investment Rating
-
-</small>
-
-</div>
-
-</div>
-
-<div class="card border-0 shadow rounded-4">
-
-<div class="card-body">
-
-<h5 class="fw-bold mb-3">
-
-AI Insights
-
-</h5>
-
-<ul class="list-group list-group-flush">
-
-<li class="list-group-item">
-
-📈 Current Price
-
-<strong>
-
-{{ result.current_price }}
-
-</strong>
-
-</li>
-
-<li class="list-group-item">
-
-🎯 Forecast Price
-
-<strong>
-
-{{ result.future_price }}
-
-</strong>
-
-</li>
-
-<li class="list-group-item">
-
-💹 Expected Return
-
-<strong>
-
-{{ result.profit_percent }}%
-
-</strong>
-
-</li>
-
-<li class="list-group-item">
-
-🤖 Recommendation
-
-<strong>
-
-{{ result.decision }}
-
-</strong>
-
-</li>
-
-<li class="list-group-item">
-
-📅 Forecast Period
-
-<strong>
-
-{{ result.years }}
-
-</strong>
-
-</li>
-
-</ul>
-
-</div>
-
-</div>
-
-</div>
-
-</div>
-<!-- Timeline -->
-
-<div class="row g-4 mb-5">
-
-    <div class="col-lg-4">
-
-        <div class="card border-0 shadow rounded-4 h-100">
-
-            <div class="card-body text-center">
-
-                <i class="bi bi-clock-history display-6 text-primary"></i>
-
-                <h5 class="mt-3 fw-bold">
-
-                    Historical Data
-
-                </h5>
-
-                <h6 class="text-secondary">
-
-                    {{ selected_past }}
-
-                </h6>
-
-                <p class="text-muted mb-0">
-
-                    Used for model training
-
-                </p>
+                </div>
 
             </div>
 
@@ -656,29 +554,27 @@ AI Insights
 
     </div>
 
-    <div class="col-lg-4">
 
-        <div class="card border-0 shadow rounded-4 h-100">
+    <!-- ===================================================== -->
+    <!--              INVESTMENT OUTLOOK                       -->
+    <!-- ===================================================== -->
 
-            <div class="card-body text-center">
+    <div class="dashboard-card mb-4">
 
-                <i class="bi bi-calendar-check display-6 text-success"></i>
+        <div class="card-header-custom">
 
-                <h5 class="mt-3 fw-bold">
+            <div>
 
-                    Forecast Period
+                <h3>
 
-                </h5>
+                    Investment Outlook
 
-                <h6 class="text-secondary">
-
-                    {{ selected_future }}
-
-                </h6>
+                </h3>
 
                 <p class="text-muted mb-0">
 
-                    AI prediction horizon
+                    AI generated market summary based on historical trend,
+                    LSTM prediction and projected return.
 
                 </p>
 
@@ -686,33 +582,199 @@ AI Insights
 
         </div>
 
-    </div>
+        <div class="card-body">
 
-    <div class="col-lg-4">
+            <div class="row">
 
-        <div class="card border-0 shadow rounded-4 h-100">
+                <div class="col-lg-8">
 
-            <div class="card-body text-center">
+                    <div class="outlook-box">
 
-                <i class="bi bi-cpu-fill display-6 text-warning"></i>
+                        <div class="d-flex justify-content-between align-items-center mb-3">
 
-                <h5 class="mt-3 fw-bold">
+                            <h5 class="fw-bold">
 
-                    Prediction Model
+                                Market Outlook
 
-                </h5>
+                            </h5>
 
-                <h6>
+                            <span class="badge bg-primary">
 
-                    LSTM Neural Network
+                                AI Analysis
 
-                </h6>
+                            </span>
 
-                <p class="text-muted mb-0">
+                        </div>
 
-                    Deep Learning Forecast
+                        {% if result.decision=="BUY" %}
 
-                </p>
+                        <div class="alert alert-success border-0 rounded-4">
+
+                            <h5>
+
+                                📈 Bullish Outlook
+
+                            </h5>
+
+                            <p class="mb-0">
+
+                                The model predicts upward momentum with an
+                                expected return of
+                                <strong>
+
+                                    {{ result.profit_percent }}%
+
+                                </strong>.
+
+                                Current market behaviour suggests that this
+                                stock may provide positive long-term growth.
+
+                            </p>
+
+                        </div>
+
+                        {% elif result.decision=="HOLD" %}
+
+                        <div class="alert alert-warning border-0 rounded-4">
+
+                            <h5>
+
+                                ⚖ Neutral Outlook
+
+                            </h5>
+
+                            <p class="mb-0">
+
+                                The predicted movement is moderate.
+
+                                Investors may wait for confirmation before
+                                making a fresh investment.
+
+                            </p>
+
+                        </div>
+
+                        {% else %}
+
+                        <div class="alert alert-danger border-0 rounded-4">
+
+                            <h5>
+
+                                📉 Bearish Outlook
+
+                            </h5>
+
+                            <p class="mb-0">
+
+                                The LSTM model indicates downside risk.
+
+                                Consider caution before investing.
+
+                            </p>
+
+                        </div>
+
+                        {% endif %}
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="col-lg-4">
+
+                    <div class="prediction-summary">
+
+                        <h5 class="fw-bold mb-4">
+
+                            Prediction Summary
+
+                        </h5>
+
+                        <div class="summary-item">
+
+                            <span>
+
+                                Current Price
+
+                            </span>
+
+                            <strong>
+
+                                {{ result.current_price }}
+
+                            </strong>
+
+                        </div>
+
+                        <div class="summary-item">
+
+                            <span>
+
+                                Forecast Price
+
+                            </span>
+
+                            <strong>
+
+                                {{ result.future_price }}
+
+                            </strong>
+
+                        </div>
+
+                        <div class="summary-item">
+
+                            <span>
+
+                                Expected Return
+
+                            </span>
+
+                            <strong>
+
+                                {{ result.profit_percent }}%
+
+                            </strong>
+
+                        </div>
+
+                        <div class="summary-item">
+
+                            <span>
+
+                                Forecast Period
+
+                            </span>
+
+                            <strong>
+
+                                {{ result.years }}
+
+                            </strong>
+
+                        </div>
+
+                        <div class="summary-item border-0">
+
+                            <span>
+
+                                Recommendation
+
+                            </span>
+
+                            <strong>
+
+                                {{ result.decision }}
+
+                            </strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
 
             </div>
 
@@ -720,132 +782,345 @@ AI Insights
 
     </div>
 
-</div>
 
 
-<!-- AI Analysis -->
+    <!-- ===================================================== -->
+    <!--                MAIN GRAPH SECTION                     -->
+    <!-- ===================================================== -->
 
-<div class="card border-0 shadow rounded-4 mb-5">
+    <div class="row g-4 mb-5">
 
-    <div class="card-body">
+        <div class="col-lg-8">
 
-        <h4 class="fw-bold mb-4">
+            <div class="dashboard-card h-100">
 
-            🤖 AI Investment Analysis
+                <div class="card-header-custom">
 
-        </h4>
+                    <div>
 
-        <div class="row">
+                        <h3>
 
-            <div class="col-md-6">
+                            Price Forecast
 
-                <ul class="list-group list-group-flush">
+                        </h3>
 
-                    <li class="list-group-item">
+                        <small class="text-muted">
 
-                        ✅ Historical Trend
+                            Historical Price • Current Price • AI Forecast
 
-                        <strong class="float-end">
+                        </small>
 
-                            Positive
+                    </div>
+
+                    <span class="badge bg-success">
+
+                        LSTM Prediction
+
+                    </span>
+
+                </div>
+
+                <div class="card-body">
+
+                    {% if graph_url %}
+
+                        {{ graph_url|safe }}
+
+                    {% endif %}
+
+                </div>
+
+            </div>
+
+        </div>
+                <!-- ===================================================== -->
+        <!--                RIGHT SIDEBAR                          -->
+        <!-- ===================================================== -->
+
+        <div class="col-lg-4">
+
+            <!-- Investment Score -->
+
+            <div class="dashboard-card mb-4">
+
+                <div class="card-header-custom">
+
+                    <h4>
+
+                        Investment Score
+
+                    </h4>
+
+                </div>
+
+                <div class="card-body text-center">
+
+                    {% set score = 50 + result.profit_percent %}
+
+                    {% if score > 100 %}
+                        {% set score = 100 %}
+                    {% endif %}
+
+                    {% if score < 0 %}
+                        {% set score = 0 %}
+                    {% endif %}
+
+                    <div class="score-circle">
+
+                        <div class="score-value">
+
+                            {{ score|round|int }}
+
+                            <small>/100</small>
+
+                        </div>
+
+                    </div>
+
+                    <div class="progress mt-4"
+                         style="height:12px;">
+
+                        <div class="progress-bar bg-success"
+
+                             style="width:{{ score }}%;">
+
+                        </div>
+
+                    </div>
+
+                    <p class="text-muted mt-3 mb-0">
+
+                        AI generated investment rating based on predicted
+                        profitability, trend consistency and volatility.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- AI Confidence -->
+
+            <div class="dashboard-card mb-4">
+
+                <div class="card-header-custom">
+
+                    <h4>
+
+                        AI Confidence
+
+                    </h4>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="d-flex justify-content-between">
+
+                        <span>
+
+                            Prediction Confidence
+
+                        </span>
+
+                        <strong>
+
+                            91%
 
                         </strong>
 
-                    </li>
+                    </div>
 
-                    <li class="list-group-item">
+                    <div class="progress mt-3"
+                         style="height:10px;">
 
-                        📈 Expected Return
+                        <div class="progress-bar bg-primary"
 
-                        <strong class="float-end">
+                             style="width:91%;">
 
-                            {{ result.profit_percent }}%
+                        </div>
+
+                    </div>
+
+                    <hr>
+
+                    <div class="d-flex justify-content-between">
+
+                        <span>
+
+                            Model Stability
+
+                        </span>
+
+                        <strong>
+
+                            High
 
                         </strong>
 
-                    </li>
+                    </div>
 
-                    <li class="list-group-item">
+                    <div class="progress mt-3"
+                         style="height:10px;">
 
-                        🎯 Forecast Price
+                        <div class="progress-bar bg-success"
 
-                        <strong class="float-end">
+                             style="width:94%;">
 
-                            {{ result.future_price }}
+                        </div>
 
-                        </strong>
+                    </div>
 
-                    </li>
+                </div>
 
-                    <li class="list-group-item">
+            </div>
 
-                        📌 Current Price
 
-                        <strong class="float-end">
+
+            <!-- Risk Level -->
+
+            <div class="dashboard-card mb-4">
+
+                <div class="card-header-custom">
+
+                    <h4>
+
+                        Risk Level
+
+                    </h4>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="risk-indicator">
+
+                        <div class="risk-dot low"></div>
+
+                        <div class="risk-dot medium active"></div>
+
+                        <div class="risk-dot high"></div>
+
+                    </div>
+
+                    <h5 class="text-center mt-4">
+
+                        Moderate Risk
+
+                    </h5>
+
+                    <p class="text-center text-muted">
+
+                        Based on historical volatility,
+                        trend strength and future prediction.
+
+                    </p>
+
+                </div>
+
+            </div>
+
+
+
+            <!-- Quick Statistics -->
+
+            <div class="dashboard-card">
+
+                <div class="card-header-custom">
+
+                    <h4>
+
+                        Quick Statistics
+
+                    </h4>
+
+                </div>
+
+                <div class="card-body">
+
+                    <div class="stat-row">
+
+                        <span>
+
+                            Current Price
+
+                        </span>
+
+                        <strong>
 
                             {{ result.current_price }}
 
                         </strong>
 
-                    </li>
+                    </div>
 
-                </ul>
+                    <div class="stat-row">
 
-            </div>
+                        <span>
 
-            <div class="col-md-6">
+                            Target Price
 
-                <ul class="list-group list-group-flush">
+                        </span>
 
-                    <li class="list-group-item">
+                        <strong>
 
-                        🟢 Recommendation
+                            {{ result.future_price }}
 
-                        <strong class="float-end">
+                        </strong>
+
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span>
+
+                            Return
+
+                        </span>
+
+                        <strong>
+
+                            {{ result.profit_percent }}%
+
+                        </strong>
+
+                    </div>
+
+                    <div class="stat-row">
+
+                        <span>
+
+                            Recommendation
+
+                        </span>
+
+                        <strong>
 
                             {{ result.decision }}
 
                         </strong>
 
-                    </li>
+                    </div>
 
-                    <li class="list-group-item">
+                    <div class="stat-row border-0">
 
-                        ⚡ Model
+                        <span>
 
-                        <strong class="float-end">
+                            Model
 
-                            LSTM
+                        </span>
 
-                        </strong>
+                        <strong>
 
-                    </li>
-
-                    <li class="list-group-item">
-
-                        🔒 Security
-
-                        <strong class="float-end">
-
-                            Watermarked
+                            LSTM Neural Network
 
                         </strong>
 
-                    </li>
+                    </div>
 
-                    <li class="list-group-item">
-
-                        📊 Confidence
-
-                        <strong class="float-end">
-
-                            86%
-
-                        </strong>
-
-                    </li>
-
-                </ul>
+                </div>
 
             </div>
 
@@ -853,122 +1128,350 @@ AI Insights
 
     </div>
 
-</div>
 
+    <!-- ===================================================== -->
+    <!--                  AI ANALYSIS                           -->
+    <!-- ===================================================== -->
 
-<!-- Risk Meter -->
+    <div class="dashboard-card mb-5"
+         id="analysis">
 
-<div class="card border-0 shadow rounded-4 mb-5">
+        <div class="card-header-custom">
 
-    <div class="card-body">
+            <h3>
 
-        <div class="d-flex justify-content-between">
+                AI Investment Analysis
 
-            <h4 class="fw-bold">
-
-                Investment Risk
-
-            </h4>
-
-            <span class="badge bg-warning text-dark">
-
-                Moderate
-
-            </span>
+            </h3>
 
         </div>
 
-        <div class="progress mt-4" style="height:18px;">
+        <div class="card-body">
 
-            <div class="progress-bar bg-success"
+            <div class="row">
 
-                 style="width:70%;">
+                <div class="col-lg-6">
 
-                Low Risk
+                    <div class="analysis-card success">
+
+                        <i class="bi bi-graph-up-arrow"></i>
+
+                        <div>
+
+                            <h5>
+
+                                Trend Analysis
+
+                            </h5>
+
+                            <p>
+
+                                Historical trend suggests a
+
+                                <strong>
+
+                                    positive long-term movement
+
+                                </strong>
+
+                                supported by the LSTM prediction.
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="col-lg-6">
+
+                    <div class="analysis-card primary">
+
+                        <i class="bi bi-cpu-fill"></i>
+
+                        <div>
+
+                            <h5>
+
+                                AI Decision
+
+                            </h5>
+
+                            <p>
+
+                                Recommendation:
+
+                                <strong>
+
+                                    {{ result.decision }}
+
+                                </strong>
+
+                                with expected return of
+
+                                <strong>
+
+                                    {{ result.profit_percent }}%
+
+                                </strong>
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
 
             </div>
+                            <!-- ================= KEY FACTORS ================= -->
 
-        </div>
+                <div class="row mt-4">
 
-        <p class="text-muted mt-3 mb-0">
+                    <div class="col-lg-6">
 
-            The prediction suggests a moderate investment
-            risk based on historical volatility and
-            expected future movement.
+                        <div class="factor-card">
 
-        </p>
+                            <h5 class="fw-bold mb-3">
+
+                                Key Positive Factors
+
+                            </h5>
+
+                            <ul class="factor-list">
+
+                                <li>
+
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+
+                                    Strong historical trend
+
+                                </li>
+
+                                <li>
+
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+
+                                    Positive AI forecast
+
+                                </li>
+
+                                <li>
+
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+
+                                    Expected return
+
+                                    <strong>
+
+                                        {{ result.profit_percent }}%
+
+                                    </strong>
+
+                                </li>
+
+                                <li>
+
+                                    <i class="bi bi-check-circle-fill text-success"></i>
+
+                                    Deep Learning LSTM prediction
+
+                                </li>
+
+                            </ul>
+
+                        </div>
+
+                    </div>
+
+
+
+                    <div class="col-lg-6">
+
+                        <div class="factor-card">
+
+                            <h5 class="fw-bold mb-3">
+
+                                Things to Consider
+
+                            </h5>
+
+                            <ul class="factor-list">
+
+                                <li>
+
+                                    <i class="bi bi-exclamation-circle-fill text-warning"></i>
+
+                                    Market volatility may affect price
+
+                                </li>
+
+                                <li>
+
+                                    <i class="bi bi-exclamation-circle-fill text-warning"></i>
+
+                                    External news impacts predictions
+
+                                </li>
+
+                                <li>
+
+                                    <i class="bi bi-exclamation-circle-fill text-warning"></i>
+
+                                    Predictions are based on historical data
+
+                                </li>
+
+                                <li>
+
+                                    <i class="bi bi-exclamation-circle-fill text-warning"></i>
+
+                                    Educational purpose only
+
+                                </li>
+
+                            </ul>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
 
     </div>
 
-</div>
 
 
-<!-- Graph Legend -->
+    <!-- ================= TIMELINE ================= -->
 
-<div class="card border-0 shadow rounded-4 mb-5">
+    <div class="dashboard-card mb-5">
 
-    <div class="card-body">
+        <div class="card-header-custom">
 
-        <h5 class="fw-bold mb-3">
+            <h3>
 
-            Graph Legend
+                Forecast Timeline
 
-        </h5>
+            </h3>
 
-        <div class="row text-center">
+        </div>
 
-            <div class="col-md-3">
+        <div class="card-body">
 
-                🔵 Historical Prices
+            <div class="timeline">
 
-            </div>
+                <div class="timeline-item">
 
-            <div class="col-md-3">
+                    <div class="timeline-icon">
 
-                🟢 Forecast Prices
+                        <i class="bi bi-clock-history"></i>
 
-            </div>
+                    </div>
 
-            <div class="col-md-3">
+                    <div>
 
-                🟠 Current Price
+                        <h5>
 
-            </div>
+                            Historical Data
 
-            <div class="col-md-3">
+                        </h5>
 
-                🟩 Confidence Zone
+                        <p>
+
+                            {{ selected_past }}
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div class="timeline-item">
+
+                    <div class="timeline-icon bg-success">
+
+                        <i class="bi bi-cpu-fill"></i>
+
+                    </div>
+
+                    <div>
+
+                        <h5>
+
+                            LSTM Training
+
+                        </h5>
+
+                        <p>
+
+                            AI learns historical patterns
+
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <div class="timeline-item">
+
+                    <div class="timeline-icon bg-primary">
+
+                        <i class="bi bi-graph-up-arrow"></i>
+
+                    </div>
+
+                    <div>
+
+                        <h5>
+
+                            Future Prediction
+
+                        </h5>
+
+                        <p>
+
+                            {{ selected_future }}
+
+                        </p>
+
+                    </div>
+
+                </div>
 
             </div>
 
         </div>
 
     </div>
-
-</div>
 
 {% endif %}
 
 {% endif %}
 
-<footer class="text-center py-5">
 
-    <h5 class="fw-bold">
+
+<!-- ================= FOOTER ================= -->
+
+<footer>
+
+    <h4>
 
         AI Stock Predictor
 
-    </h5>
+    </h4>
 
-    <p class="text-muted">
+    <p>
 
-        Powered by Flask • Plotly • TensorFlow LSTM
+        Powered by Flask • TensorFlow • Plotly • LSTM
 
     </p>
 
-    <small class="text-secondary">
+    <small>
 
-        This prediction is generated using Deep Learning
-        and historical stock market data.
+        © 2026 AI Stock Predictor
 
         <br>
 
@@ -978,13 +1481,13 @@ AI Insights
 
 </footer>
 
-</div>
+
 
 <script>
 
 function toggleUpload(){
 
-    const stock=document.getElementById("stockSelect").value;
+    let stock=document.getElementById("stockSelect").value;
 
     document.getElementById("manualTicker").style.display="none";
 
@@ -1004,11 +1507,15 @@ function toggleUpload(){
 
 }
 
+
+
 window.onload=function(){
 
     toggleUpload();
 
 }
+
+
 
 function showLoading(){
 
@@ -1022,12 +1529,7 @@ function showLoading(){
 
 </script>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-</body>
-
-</html>
-</script>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 

@@ -1,297 +1,64 @@
 import os
-import re
-import numpy as np
+from datetime import datetime
+
 import pandas as pd
 
-from flask import (
-    Flask,
-    render_template,
-    request
+from flask import Flask, render_template, request
+
+from utils import (
+    STOCK_MAP,
+    parse_period,
+    load_data,
+    prepare_prediction_data,
+    get_model,
+    predict_future,
+    generate_future_dates,
+    get_current_price,
+    get_future_price,
+    calculate_profit
 )
 
-from tensorflow.keras.models import (
-    load_model
+from ai import (
+    analyze_prediction
 )
 
-from sklearn.preprocessing import (
-    MinMaxScaler
+from graph import (
+    create_graph
 )
 
-import plotly.graph_objs as go
-import plotly.offline as pyo
 
-import yfinance as yf
+# ==========================================================
+# Flask Application
+# ==========================================================
 
 app = Flask(__name__)
 
+
+# ==========================================================
+# Configuration
+# ==========================================================
+
 CACHE_DIR = "cache"
-MODEL_DIR = "lstm_model"
 
-WINDOW_SIZE = 60
 
-STOCK_MAP = {
-
-    "AAPL": "Apple",
-
-    "AMZN": "Amazon",
-
-    "GOOGL": "Google",
-
-    "MSFT": "Microsoft",
-
-    "TSLA": "Tesla"
-}
-
-MODEL_CACHE = {}
-
-
-def parse_period(text):
-
-    text = text.strip().lower()
-
-    match = re.match(
-
-        r"(\d+(?:\.\d+)?)\s*"
-        r"(month|months|year|years)",
-
-        text
-    )
-
-    if not match:
-
-        raise Exception(
-
-            "Please enter periods like "
-            "'6 months', "
-            "'18 months' "
-            "or "
-            "'2 years'"
-        )
-
-    value = float(
-        match.group(1)
-    )
-
-    unit = match.group(2)
-
-    if "month" in unit:
-
-        yf_period = (
-            f"{max(1,int(value))}mo"
-        )
-
-        trading_days = max(
-            21,
-            int(value * 21)
-        )
-
-        years = value / 12
-
-    else:
-
-        yf_period = (
-            f"{max(1,int(value))}y"
-        )
-
-        trading_days = max(
-            252,
-            int(value * 252)
-        )
-
-        years = value
-
-    return (
-        yf_period,
-        trading_days,
-        years
-    )
-
-
-def get_model(stock):
-
-    if stock not in MODEL_CACHE:
-
-        model_path = os.path.join(
-
-            MODEL_DIR,
-
-            f"{stock}.h5"
-        )
-
-        MODEL_CACHE[stock] = (
-
-            load_model(
-                model_path,
-                compile=False
-            )
-        )
-
-    return MODEL_CACHE[stock]
-
-
-def download_stock(
-
-    ticker,
-    period
-
-):
-
-    df = yf.download(
-
-        ticker,
-
-        period=period,
-
-        auto_adjust=True
-    )
-
-    if df.empty:
-
-        raise Exception(
-
-            f"No data returned "
-            f"for ticker {ticker}"
-        )
-
-    df.reset_index(
-        inplace=True
-    )
-
-    return df
-
-
-def predict_future(
-
-    model,
-
-    window,
-
-    scaler,
-
-    future_days
-
-):
-
-    predictions = []
-
-    current_window = (
-        window.copy()
-    )
-
-    for _ in range(
-        future_days
-    ):
-
-        X = current_window.reshape(
-
-            1,
-
-            WINDOW_SIZE,
-
-            1
-        )
-
-        prediction = (
-
-            model.predict(
-                X,
-                verbose=0
-            )[0][0]
-        )
-
-        predictions.append(
-            prediction
-        )
-
-        current_window = np.vstack(
-
-            (
-
-                current_window[1:],
-
-                [[prediction]]
-            )
-        )
-
-    predictions = np.array(
-
-        predictions
-
-    ).reshape(-1, 1)
-
-    return scaler.inverse_transform(
-        predictions
-    )
-
-
-def calculate_confidence(
-
-    prices,
-
-    current_price
-
-):
-
-    lookback = min(
-        120,
-        len(prices)
-    )
-
-    volatility = np.std(
-
-        prices[-lookback:]
-    )
-
-    confidence = (
-
-        95
-        -
-        (
-            volatility
-            /
-            current_price
-        )
-        * 100
-    )
-
-    confidence = max(
-        55,
-        min(
-            95,
-            confidence
-        )
-    )
-
-    return round(
-        confidence,
-        1
-    )
-def determine_risk(
-    profit_percent
-):
-
-    absolute_profit = abs(
-        profit_percent
-    )
-
-    if absolute_profit > 50:
-
-        return "High"
-
-    elif absolute_profit > 20:
-
-        return "Medium"
-
-    return "Low"
-
+# ==========================================================
+# Home Page
+# ==========================================================
 
 @app.route(
+
     "/",
+
     methods=[
+
         "GET",
+
         "POST"
+
     ]
+
 )
+
 def index():
 
     result = None
@@ -306,670 +73,370 @@ def index():
 
     if request.method == "POST":
 
-        selected_stock = (
-
-            request.form.get(
-                "stock"
-            )
-        )
-
-        selected_past = (
-
-            request.form.get(
-                "past_range"
-            )
-        )
-
-        selected_future = (
-
-            request.form.get(
-                "future_range"
-            )
-        )
-
-        manual_stock = (
-
-            request.form.get(
-                "manual_stock"
-            )
-        )
-
-        uploaded_file = (
-
-            request.files.get(
-                "stock_file"
-            )
-        )
-
         try:
 
+            # =====================================
+            # Read Form
+            # =====================================
+
+            selected_stock = request.form.get(
+
+                "stock"
+
+            )
+
+            selected_past = request.form.get(
+
+                "past_range"
+
+            )
+
+            selected_future = request.form.get(
+
+                "future_range"
+
+            )
+
+            manual_stock = request.form.get(
+
+                "manual_stock"
+
+            )
+
+            uploaded_file = request.files.get(
+
+                "stock_file"
+
+            )
+
+            # =====================================
+            # Parse Periods
+            # =====================================
+
             (
-                past_period,
+
+                yahoo_period,
+
                 _,
+
                 _
+
             ) = parse_period(
+
                 selected_past
+
             )
 
             (
+
                 _,
+
                 future_days,
+
                 future_years
+
             ) = parse_period(
+
                 selected_future
+
             )
 
-            # ------------------
-            # DATA SOURCE
-            # ------------------
+            # =====================================
+            # Manual Stock
+            # =====================================
 
             if (
 
-                selected_stock
-                ==
-                "UPLOAD"
+                selected_stock == "MANUAL"
 
-                and
-
-                uploaded_file
-
-            ):
-
-                df = pd.read_csv(
-                    uploaded_file
-                )
-
-            elif (
-
-                selected_stock
-                ==
-                "MANUAL"
-
-                and
-
-                manual_stock
+                and manual_stock
 
             ):
 
                 selected_stock = (
 
                     manual_stock
-                    .upper()
+
                     .strip()
+
+                    .upper()
+
                 )
 
-                df = download_stock(
+            # =====================================
+            # Load Dataset
+            # =====================================
 
-                    selected_stock,
+            df = load_data(
 
-                    past_period
-                )
+                stock=selected_stock,
 
-            else:
+                period=yahoo_period,
 
-                cache_path = (
+                uploaded_file=uploaded_file,
 
-                    os.path.join(
+                cache_dir=CACHE_DIR
 
-                        CACHE_DIR,
-
-                        f"{selected_stock}.csv"
-                    )
-                )
-
-                if os.path.exists(
-                    cache_path
-                ):
-
-                    df = pd.read_csv(
-
-                        cache_path,
-
-                        skiprows=[1]
-                    )
-
-                    if len(df) > 2000:
-
-                        df = df.tail(
-                            2000
-                        )
-
-                else:
-
-                    df = download_stock(
-
-                        selected_stock,
-
-                        past_period
-                    )
-
-            # ------------------
-            # MULTI INDEX FIX
-            # ------------------
-
-            if isinstance(
-
-                df.columns,
-
-                pd.MultiIndex
-
-            ):
-
-                df.columns = (
-
-                    df.columns
-                    .get_level_values(
-                        0
-                    )
-                )
-
-            df.columns = [
-
-                str(col)
-                .strip()
-                .lower()
-
-                for col
-                in df.columns
-            ]
-
-            # ------------------
-            # DATE DETECTION
-            # ------------------
-
-            date_column = None
-
-            for col in df.columns:
-
-                parsed = (
-
-                    pd.to_datetime(
-
-                        df[col],
-
-                        errors="coerce"
-                    )
-                )
-
-                if (
-
-                    parsed.notna()
-                    .sum()
-
-                    >
-
-                    len(df)
-                    * 0.5
-                ):
-
-                    date_column = col
-
-                    df["Date"] = (
-                        parsed
-                    )
-
-                    break
-
-            if date_column is None:
-
-                raise Exception(
-
-                    "Could not find "
-                    "a valid date "
-                    "column in "
-                    "the dataset."
-                )
-
-            # ------------------
-            # PRICE DETECTION
-            # ------------------
-
-            price_column = None
-
-            price_candidates = [
-
-                "close",
-
-                "adj close",
-
-                "closing price",
-
-                "close price"
-            ]
-
-            for candidate in (
-                price_candidates
-            ):
-
-                if candidate in (
-                    df.columns
-                ):
-
-                    price_column = (
-                        candidate
-                    )
-
-                    break
-
-            if price_column is None:
-
-                numeric_columns = (
-
-                    df.select_dtypes(
-                        include=np.number
-                    ).columns
-                )
-
-                if (
-                    len(
-                        numeric_columns
-                    )
-                    ==
-                    0
-                ):
-
-                    raise Exception(
-
-                        "No numeric "
-                        "price column "
-                        "found."
-                    )
-
-                price_column = (
-
-                    numeric_columns[-1]
-                )
-
-            df["Close"] = (
-
-                pd.to_numeric(
-
-                    df[
-                        price_column
-                    ],
-
-                    errors="coerce"
-                )
-            )
-                        # ------------------
-            # DATA CLEANING
-            # ------------------
-
-            df = df.dropna(
-                subset=[
-                    "Date",
-                    "Close"
-                ]
             )
 
-            df = (
+            # =====================================
+            # Prepare Prediction
+            # =====================================
 
-                df.sort_values(
-                    "Date"
-                )
+            (
 
-                .reset_index(
-                    drop=True
-                )
-            )
-
-            prices = (
-
-                df["Close"]
-
-                .values
-
-                .reshape(
-                    -1,
-                    1
-                )
-            )
-
-            if (
-
-                len(prices)
-
-                <
-
-                WINDOW_SIZE
-
-            ):
-
-                raise Exception(
-
-                    f"Need at least "
-
-                    f"{WINDOW_SIZE} "
-
-                    f"rows of data."
-                )
-
-            # ------------------
-            # SCALING
-            # ------------------
-
-            scaler = (
-                MinMaxScaler()
-            )
-
-            scaled_prices = (
-
-                scaler.fit_transform(
-                    prices
-                )
-            )
-
-            # ------------------
-            # MODEL LOADING
-            # ------------------
-
-            if (
-
-                selected_stock
-
-                in
-
-                STOCK_MAP
-
-            ):
-
-                model = get_model(
-                    selected_stock
-                )
-
-            else:
-
-                model = get_model(
-                    "AAPL"
-                )
-
-            # ------------------
-            # FORECAST
-            # ------------------
-
-            last_window = (
-
-                scaled_prices[
-                    -WINDOW_SIZE:
-                ]
-            )
-
-            preds = predict_future(
-
-                model,
-
-                last_window,
+                prices,
 
                 scaler,
 
-                future_days
+                last_window
+
+            ) = prepare_prediction_data(
+
+                df
+
             )
 
-            future_price = (
-                preds[-1][0]
+            # =====================================
+            # Load LSTM Model
+            # =====================================
+
+            model_stock = (
+
+                selected_stock
+
+                if selected_stock in STOCK_MAP
+
+                else "AAPL"
+
             )
 
-            current_price = (
-                prices[-1][0]
+            model = get_model(
+
+                model_stock
+
+            )
+                        # =====================================
+            # Run LSTM Prediction
+            # =====================================
+
+            predictions = predict_future(
+
+                model=model,
+
+                last_window=last_window,
+
+                scaler=scaler,
+
+                future_days=future_days
+
             )
 
-            profit_percent = (
+            # =====================================
+            # Prices
+            # =====================================
 
-                (
-                    future_price
-                    -
-                    current_price
-                )
+            current_price = get_current_price(
 
-                /
+                prices
 
-                current_price
+            )
 
-            ) * 100
+            future_price = get_future_price(
+
+                predictions
+
+            )
+
+            total_profit = calculate_profit(
+
+                current_price,
+
+                future_price
+
+            )
 
             yearly_profit = (
 
-                profit_percent
+                total_profit
 
                 /
 
                 future_years
+
             )
 
-            confidence = (
+            # =====================================
+            # Company Name
+            # =====================================
 
-                calculate_confidence(
+            company = STOCK_MAP.get(
 
-                    prices,
-
-                    current_price
-                )
-            )
-
-            risk = determine_risk(
-                profit_percent
-            )
-
-            # ------------------
-            # INVESTMENT DECISION
-            # ------------------
-
-            if yearly_profit >= 12:
-
-                decision = (
-                    "Long-Term Investment"
-                )
-
-                color = "green"
-
-            elif yearly_profit >= 4:
-
-                decision = (
-                    "Moderate Investment"
-                )
-
-                color = "orange"
-
-            else:
-
-                decision = (
-                    "Not Recommended"
-                )
-
-                color = "red"
-
-            # ------------------
-            # GRAPH DATA
-            # ------------------
-
-            today = (
-
-                pd.Timestamp
-                .today()
-                .normalize()
-            )
-
-            future_dates = (
-
-                pd.bdate_range(
-
-                    start=today,
-
-                    periods=
-                    future_days + 1
-                )
-            )
-
-            future_prices = (
-                preds.flatten()
-            )
-
-            trace_current = (
-                go.Scatter(
-
-                    x=[
-                        future_dates[0]
-                    ],
-
-                    y=[
-                        current_price
-                    ],
-
-                    mode="markers",
-
-                    marker=dict(
-
-                        size=12,
-
-                        color=
-                        "#22c55e"
-                    ),
-
-                    name=
-                    "Current Price"
-                )
-            )
-
-            trace_forecast = (
-                go.Scatter(
-
-                    x=
-                    future_dates[1:],
-
-                    y=
-                    future_prices,
-
-                    mode=
-                    "lines",
-
-                    line=dict(
-
-                        width=4,
-
-                        color=
-                        "#38bdf8"
-                    ),
-
-                    name=
-                    "Forecast"
-                )
-            )
-
-            fig = go.Figure(
-
-                data=[
-
-                    trace_current,
-
-                    trace_forecast
-                ]
-            )
-
-            currency = (
-
-                "₹"
-
-                if ".NS"
-                in selected_stock
-
-                else "$"
-            )
-
-            fig.update_layout(
-
-                title=
-                f"{selected_stock} Forecast",
-
-                xaxis_title=
-                "Date",
-
-                yaxis_title=
-                f"Price ({currency})",
-
-                template=
-                "plotly_dark",
-
-                paper_bgcolor=
-                "rgba(0,0,0,0)",
-
-                plot_bgcolor=
-                "rgba(0,0,0,0)",
-
-                font=dict(
-
-                    color="white",
-
-                    size=14
-                ),
-
-                title_font=dict(
-                    size=22
-                )
-            )
-
-            graph_url = (
-
-                pyo.plot(
-
-                    fig,
-
-                    output_type=
-                    "div",
-
-                    include_plotlyjs=
-                    False
-                )
-            )
-
-            # ------------------
-            # RESULT DATA
-            # ------------------
-
-            result = {
-
-                "stock":
                 selected_stock,
 
-                "current_price":
-                round(
-                    current_price,
-                    2
-                ),
+                selected_stock
 
-                "future_price":
-                round(
-                    future_price,
-                    2
-                ),
+            )
 
-                "profit_percent":
-                round(
-                    profit_percent,
-                    2
-                ),
+            # =====================================
+            # AI Analysis
+            # =====================================
 
-                "decision":
-                decision,
+            ai_result = analyze_prediction(
 
-                "color":
-                color,
+                prices=prices,
 
-                "confidence":
-                confidence,
+                current_price=current_price,
 
-                "risk":
-                risk,
+                future_price=future_price,
 
-                "years":
-                selected_future.title()
-            }
+                yearly_profit=yearly_profit,
 
-        except Exception as e:
+                total_profit=total_profit,
+
+                company=company,
+
+                selected_past=selected_past,
+
+                selected_future=selected_future
+
+            )
+
+            # =====================================
+            # Future Trading Dates
+            # =====================================
+
+            future_dates = generate_future_dates(
+
+                df["Date"].iloc[-1],
+
+                future_days
+
+            )
+
+            # =====================================
+            # Generate Plotly Graph
+            # =====================================
+
+            graph_url = create_graph(
+
+                historical_dates=df["Date"],
+
+                historical_prices=df["Close"],
+
+                future_dates=future_dates,
+
+                future_prices=predictions,
+
+                current_price=current_price
+
+            )
+
+            # =====================================
+            # Current Time
+            # =====================================
+
+            now = datetime.now()
+
+            generated_on = now.strftime(
+
+                "%d %B %Y"
+
+            )
+
+            generated_time = now.strftime(
+
+                "%I:%M %p"
+
+            )
+
+            # =====================================
+            # Build Result Dictionary
+            # =====================================
 
             result = {
 
-                "error":
-                str(e)
+                "stock": selected_stock,
+
+                "company": company,
+
+                "current_price": round(
+
+                    current_price,
+
+                    2
+
+                ),
+
+                "future_price": round(
+
+                    future_price,
+
+                    2
+
+                ),
+
+                "profit_percent": round(
+
+                    total_profit,
+
+                    2
+
+                ),
+
+                "yearly_profit": round(
+
+                    yearly_profit,
+
+                    2
+
+                ),
+
+                "investment_score": ai_result["score"],
+
+                "confidence": ai_result["confidence"],
+
+                "confidence_title": ai_result["confidence_title"],
+
+                "confidence_text": ai_result["confidence_text"],
+
+                "risk": ai_result["risk"],
+
+                "risk_text": ai_result["risk_text"],
+
+                "decision": ai_result["decision"],
+
+                "badge": ai_result["badge"],
+
+                "sentiment": ai_result["sentiment"],
+
+                "sentiment_color": ai_result["sentiment_color"],
+
+                "outlook": ai_result["outlook"],
+
+                "insights": ai_result["insights"],
+
+                "timeline": ai_result["timeline"],
+
+                "summary": ai_result["summary"],
+
+                "prediction_date": generated_on,
+
+                "prediction_time": generated_time,
+
+                "model": "Watermarked LSTM v2.0"
+
+            }
+        except Exception as e:
+
+            import traceback
+
+            traceback.print_exc()
+
+            result = {
+
+            "error": str(e)
+
             }
 
     return render_template(
@@ -982,16 +449,43 @@ def index():
 
         stocks=STOCK_MAP,
 
-        selected_stock=
-        selected_stock,
+        selected_stock=selected_stock,
 
-        selected_past=
-        selected_past,
+        selected_past=selected_past,
 
-        selected_future=
-        selected_future
+        selected_future=selected_future
+
     )
 
+
+# ==========================================================
+# Health Check
+# ==========================================================
+
+@app.route("/health")
+
+def health():
+
+    return {
+
+        "status": "running",
+
+        "application": "AI Stock Predictor Pro",
+
+        "model": "Watermarked LSTM",
+
+        "timestamp": datetime.now().strftime(
+
+            "%d-%m-%Y %H:%M:%S"
+
+        )
+
+    }
+
+
+# ==========================================================
+# Application Entry Point
+# ==========================================================
 
 if __name__ == "__main__":
 
@@ -1002,7 +496,9 @@ if __name__ == "__main__":
             "PORT",
 
             5000
+
         )
+
     )
 
     app.run(
@@ -1012,4 +508,5 @@ if __name__ == "__main__":
         port=port,
 
         debug=True
+
     )
